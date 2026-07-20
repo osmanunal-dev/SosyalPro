@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SosyalPro — Sosyal Medya Yönetim Platformu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E1F2D;
+  --ink-2:#14293A;
+  --bg:#F3F6F5;
+  --card:#FFFFFF;
+  --line:#E2E9E6;
+  --text:#1B2B33;
+  --muted:#63757E;
+  --mint:#14B394;
+  --mint-dark:#0D8A72;
+  --mint-soft:#E2F5F0;
+  --amber:#F2A93B;
+  --coral:#E8685C;
+  --blue:#3B82C4;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(14,31,45,.05),0 8px 24px -12px rgba(14,31,45,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.55}
+h1,h2,h3,h4{font-family:'Sora',sans-serif;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px}
+::selection{background:var(--mint-soft)}
+
+/* ---------- Layout ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:264px;background:var(--ink);color:#DCE7E4;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:40;transition:transform .25s}
+.main{flex:1;margin-left:264px;padding:26px 30px 60px;max-width:1240px}
+.brand{display:flex;align-items:center;gap:11px;padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand-logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--mint),#0C7A66);display:grid;place-items:center;font-family:'Sora';font-weight:800;color:#fff;font-size:17px}
+.brand b{font-family:'Sora';font-size:17px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.brand small{display:block;font-size:10.5px;color:#7E95A0;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.nav{flex:1;overflow-y:auto;padding:14px 12px;scrollbar-width:thin;scrollbar-color:#2A4356 transparent}
+.nav-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5E7583;padding:14px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:0;background:none;color:#B9CBC9;border-radius:10px;font-size:13.5px;font-weight:500;text-align:left;transition:.15s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:var(--mint);color:#fff;font-weight:600}
+.nav-item .ni{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:14px;flex:none}
+.nav-item.active .ni{background:rgba(255,255,255,.2)}
+.nav-item .badge{margin-left:auto;background:var(--coral);color:#fff;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:20px}
+.sidebar-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);font-size:11.5px;color:#6E8592}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.topbar h1{font-size:22px;font-weight:700}
+.topbar .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.acct-chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:30px;padding:5px 12px 5px 6px;font-size:12.5px;font-weight:600;box-shadow:var(--shadow)}
+.chip .pdot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;font-family:'Sora'}
+
+/* ---------- Cards & grid ---------- */
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.stat .k{font-size:26px;font-weight:800;font-family:'Sora'}
+.stat .l{color:var(--muted);font-size:12.5px;font-weight:500;margin-top:2px}
+.stat .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;margin-bottom:10px}
+.mint-bg{background:var(--mint-soft);color:var(--mint-dark)}
+.amber-bg{background:#FCF0DB;color:#B07414}
+.coral-bg{background:#FCE7E4;color:#C24A3F}
+.blue-bg{background:#E3EEF8;color:#2B69A0}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:600;transition:.15s}
+.btn-p{background:var(--mint);color:#fff}
+.btn-p:hover{background:var(--mint-dark)}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover{border-color:var(--mint);color:var(--mint-dark)}
+.btn-danger{background:#FCE7E4;color:#C24A3F}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btn-ai{background:linear-gradient(120deg,#7C5CE0,#4F8DE0);color:#fff}
+.btn-ai:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+
+/* ---------- Forms ---------- */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.inp,textarea.inp,select.inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#FBFDFC;outline:none;transition:.15s}
+.inp:focus{border-color:var(--mint);box-shadow:0 0 0 3px rgba(20,179,148,.13);background:#fff}
+textarea.inp{resize:vertical;min-height:88px}
+.row{display:flex;gap:12px}.row>*{flex:1}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.pcheck{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;user-select:none;background:#fff}
+.pcheck input{display:none}
+.pcheck.on{border-color:var(--mint);background:var(--mint-soft);color:var(--mint-dark)}
+
+/* ---------- Toggle ---------- */
+.tgl{position:relative;width:40px;height:22px;flex:none;cursor:pointer}
+.tgl input{display:none}
+.tgl span{position:absolute;inset:0;background:#CBD8D4;border-radius:22px;transition:.2s}
+.tgl span::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tgl input:checked+span{background:var(--mint)}
+.tgl input:checked+span::after{left:21px}
+
+/* ---------- Tables / lists ---------- */
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.tag{font-size:11px;font-weight:700;padding:2.5px 9px;border-radius:20px}
+.tag-mint{background:var(--mint-soft);color:var(--mint-dark)}
+.tag-amber{background:#FCF0DB;color:#B07414}
+.tag-gray{background:#EDF1F0;color:#5E7078}
+.tag-coral{background:#FCE7E4;color:#C24A3F}
+.tag-blue{background:#E3EEF8;color:#2B69A0}
+
+/* ---------- Calendar ---------- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-head b{font-family:'Sora';font-size:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .dow{font-size:11px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em;padding:4px 0}
+.cal .day{min-height:86px;border:1px solid var(--line);border-radius:10px;padding:6px 7px;background:#fff;cursor:pointer;transition:.12s;font-size:12px;position:relative}
+.cal .day:hover{border-color:var(--mint)}
+.cal .day.dim{opacity:.4;background:#F7FAF9}
+.cal .day.today{border-color:var(--mint);box-shadow:0 0 0 2px rgba(20,179,148,.18)}
+.cal .day .dn{font-weight:700;font-size:12px;color:var(--muted)}
+.cal .day.today .dn{color:var(--mint-dark)}
+.cal .pill{margin-top:4px;background:var(--mint-soft);color:var(--mint-dark);border-radius:6px;padding:1.5px 6px;font-size:10.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .pill.pub{background:#EDF1F0;color:#5E7078;text-decoration:line-through}
+
+/* ---------- Inbox ---------- */
+.msg{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.msg:last-child{border-bottom:0}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-family:'Sora';font-size:14px;flex:none}
+.msg .body{flex:1;min-width:0}
+.msg .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.msg .who b{font-size:13.5px}
+.msg .txt{margin-top:3px;font-size:13.5px}
+.msg .reply-box{margin-top:10px;background:#F7FAF9;border:1px solid var(--line);border-radius:10px;padding:10px}
+.msg .replied{margin-top:8px;background:var(--mint-soft);border-radius:10px;padding:9px 12px;font-size:13px}
+.msg .replied b{color:var(--mint-dark);font-size:11.5px;display:block;margin-bottom:2px}
+.inbox-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+
+/* ---------- Chat ---------- */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 210px);min-height:420px}
+.chat-log{flex:1;overflow-y:auto;padding:6px 4px;display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:76%;padding:11px 15px;border-radius:16px;font-size:14px;white-space:pre-wrap}
+.bubble.user{align-self:flex-end;background:var(--mint);color:#fff;border-bottom-right-radius:5px}
+.bubble.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+.chat-input{display:flex;gap:10px;margin-top:14px}
+.chat-input textarea{flex:1;min-height:48px;max-height:140px}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(10,24,34,.55);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:60px 16px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:520px;padding:24px;box-shadow:0 24px 60px -12px rgba(10,24,34,.4);animation:pop .18s ease}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:17px;margin-bottom:16px}
+.modal .close-x{float:right;border:0;background:#EDF1F0;width:30px;height:30px;border-radius:8px;font-size:15px}
+
+/* ---------- Platform grid on accounts page ---------- */
+.plat-card{display:flex;align-items:center;gap:14px;padding:16px}
+.plat-logo{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#fff;font-family:'Sora';font-weight:800;font-size:19px;flex:none}
+.plat-card .meta{flex:1;min-width:0}
+.plat-card .meta b{font-size:14.5px;display:block}
+.plat-card .meta span{font-size:12.5px;color:var(--muted)}
+
+/* ---------- AI result ---------- */
+.ai-out{background:linear-gradient(135deg,#F4F1FD,#EEF5FD);border:1px solid #E0DBF5;border-radius:14px;padding:16px;white-space:pre-wrap;font-size:14px}
+.spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:38px 16px;color:var(--muted)}
+.empty .big{font-size:34px;margin-bottom:8px}
+
+/* ---------- Templates ---------- */
+.tpl{display:flex;flex-direction:column;gap:10px}
+.tpl .t-head{display:flex;align-items:center;gap:10px}
+.tpl .t-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex:none}
+.tpl p{font-size:13px;color:var(--muted);flex:1}
+.tpl .t-foot{display:flex;justify-content:flex-end}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:12px;font-size:13.5px;font-weight:500;opacity:0;transition:.25s;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#toast.show{transform:translateX(-50%);opacity:1}
+
+.view{display:none}
+.view.active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.mt{margin-top:16px}.mb{margin-bottom:16px}
+.flex{display:flex;align-items:center;gap:10px}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.muted{color:var(--muted);font-size:12.5px}
+
+.menu-btn{display:none;border:0;background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;font-size:18px}
+@media(max-width:1024px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0;padding:16px 14px 60px}
+  .menu-btn{display:grid;place-items:center}
+  .g4,.g3,.g2{grid-template-columns:1fr}
+  .row{flex-direction:column}
+  .cal .day{min-height:62px}
+  .topbar{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-logo">S</div>
+    <div><b>SosyalPro</b><small>Yönetim Paneli</small></div>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div class="sidebar-foot">Nothing Code · SosyalPro v1.0</div>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<main class="main">
+  <div class="topbar">
+    <div class="flex">
+      <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div>
+        <h1 id="page-title">Genel Bakış</h1>
+        <div class="sub" id="page-sub"></div>
+      </div>
+    </div>
+    <div class="acct-chips" id="topChips"></div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section class="view" id="view-dashboard">
+    <div class="grid g4 mb">
+      <div class="card stat"><div class="ic mint-bg">🔗</div><div class="k" id="st-acc">0</div><div class="l">Bağlı Hesap</div></div>
+      <div class="card stat"><div class="ic blue-bg">📅</div><div class="k" id="st-plan">0</div><div class="l">Planlanan Gönderi</div></div>
+      <div class="card stat"><div class="ic amber-bg">⚙️</div><div class="k" id="st-auto">0</div><div class="l">Aktif Otomasyon</div></div>
+      <div class="card stat"><div class="ic coral-bg">💬</div><div class="k" id="st-msg">0</div><div class="l">Yanıt Bekleyen</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="spread mb"><h3 style="margin:0">📅 Yaklaşan Gönderiler</h3><button class="btn btn-ghost btn-sm" onclick="go('planner')">Tümü</button></div>
+        <div id="dash-upcoming"></div>
+      </div>
+      <div class="card">
+        <div class="spread mb"><h3 style="margin:0">💬 Son Mesajlar & Yorumlar</h3><button class="btn btn-ghost btn-sm" onclick="go('inbox')">Gelen Kutusu</button></div>
+        <div id="dash-inbox"></div>
+      </div>
+    </div>
+    <div class="card mt">
+      <h3>⚡ Hızlı İşlemler</h3>
+      <div class="flex" style="flex-wrap:wrap">
+        <button class="btn btn-p" onclick="openPostModal()">＋ Gönderi Planla</button>
+        <button class="btn btn-ai" onclick="go('ai-caption')">✨ AI Açıklama Yazısı</button>
+        <button class="btn btn-ghost" onclick="go('accounts')">🔗 Hesap Bağla</button>
+        <button class="btn btn-ghost" onclick="go('automation')">⚙️ Otomasyon Kur</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ACCOUNTS ===== -->
+  <section class="view" id="view-accounts">
+    <div class="grid g2" id="plat-grid"></div>
+  </section>
+
+  <!-- ===== CONTENT PLANNER ===== -->
+  <section class="view" id="view-planner">
+    <div class="card mb">
+      <div class="cal-head">
+        <div class="flex">
+          <button class="btn btn-ghost btn-sm" onclick="calMove(-1)">‹</button>
+          <b id="cal-title"></b>
+          <button class="btn btn-ghost btn-sm" onclick="calMove(1)">›</button>
+        </div>
+        <button class="btn btn-p btn-sm" onclick="openPostModal()">＋ Gönderi Planla</button>
+      </div>
+      <div class="cal" id="cal"></div>
+    </div>
+    <div class="card">
+      <h3>📋 Planlanan Gönderiler</h3>
+      <div id="post-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== LOOP PLANNER ===== -->
+  <section class="view" id="view-loop">
+    <div class="grid g2">
+      <div class="card">
+        <h3>🔁 Yeni Döngü Oluştur</h3>
+        <div class="field"><label>Döngü Adı</label><input class="inp" id="loop-name" placeholder="Örn: Haftalık Motivasyon Sözleri"></div>
+        <div class="field"><label>Platformlar</label><div class="checks" id="loop-plats"></div></div>
+        <div class="row">
+          <div class="field"><label>Sıklık</label>
+            <select class="inp" id="loop-freq">
+              <option value="daily">Her gün</option>
+              <option value="weekly">Haftada bir</option>
+              <option value="mwf">Pzt / Çar / Cum</option>
+              <option value="weekend">Hafta sonu</option>
+            </select>
+          </div>
+          <div class="field"><label>Saat</label><input class="inp" type="time" id="loop-time" value="10:00"></div>
+        </div>
+        <div class="field"><label>İçerik Havuzu <span class="muted">(her satır bir gönderi — sırayla döner)</span></label>
+          <textarea class="inp" id="loop-items" placeholder="İlk gönderi metni&#10;İkinci gönderi metni&#10;Üçüncü gönderi metni"></textarea>
+        </div>
+        <button class="btn btn-p" onclick="addLoop()">Döngüyü Başlat</button>
+      </div>
+      <div class="card">
+        <h3>🌀 Aktif Döngüler</h3>
+        <div id="loop-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AUTOMATION TOOLS ===== -->
+  <section class="view" id="view-automation">
+    <div class="grid g2">
+      <div class="card">
+        <h3>⚙️ Yeni Otomasyon Kuralı</h3>
+        <div class="field"><label>Kural Adı</label><input class="inp" id="auto-name" placeholder="Örn: Fiyat soranlara otomatik yanıt"></div>
+        <div class="row">
+          <div class="field"><label>Tetikleyici</label>
+            <select class="inp" id="auto-trigger">
+              <option value="comment">Yorumda anahtar kelime</option>
+              <option value="dm">DM'de anahtar kelime</option>
+              <option value="newfollow">Yeni takipçi</option>
+              <option value="mention">Bahsetme (mention)</option>
+            </select>
+          </div>
+          <div class="field"><label>Anahtar Kelimeler <span class="muted">(virgülle)</span></label><input class="inp" id="auto-keywords" placeholder="fiyat, ücret, kaç para"></div>
+        </div>
+        <div class="field"><label>Otomatik Yanıt Metni</label><textarea class="inp" id="auto-reply" placeholder="Merhaba! Güncel fiyat listemiz için DM'den ulaşabilirsiniz. 😊"></textarea></div>
+        <button class="btn btn-p" onclick="addAutomation()">Kuralı Oluştur</button>
+        <div class="muted mt">💡 Hazır kurallar için <a href="#" onclick="go('auto-templates');return false" style="color:var(--mint-dark);font-weight:600">Otomasyon Şablonları</a>'na göz atın.</div>
+      </div>
+      <div class="card">
+        <h3>🟢 Kurallarım</h3>
+        <div id="auto-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== INBOX ===== -->
+  <section class="view" id="view-inbox">
+    <div class="card">
+      <div class="inbox-tools">
+        <select class="inp" id="inbox-filter" style="width:auto" onchange="renderInbox()">
+          <option value="all">Tümü</option>
+          <option value="dm">Mesajlar (DM)</option>
+          <option value="comment">Yorumlar</option>
+          <option value="pending">Yanıt Bekleyen</option>
+        </select>
+        <button class="btn btn-p btn-sm" onclick="igSyncComments()">📸 Instagram yorumlarını çek</button>
+        <button class="btn btn-ghost btn-sm" onclick="simulateIncoming()">📥 Demo mesaj simüle et</button>
+        <span class="muted" id="inbox-count"></span>
+      </div>
+      <div id="inbox-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== AI INBOX ===== -->
+  <section class="view" id="view-ai-inbox">
+    <div class="card mb">
+      <div class="spread">
+        <div>
+          <h3 style="margin:0">🤖 Yapay Zeka Otomatik Yanıt</h3>
+          <div class="muted">Açıkken, gelen her mesaj ve yorum işletme profilinize uygun şekilde yapay zeka tarafından otomatik yanıtlanır.</div>
+        </div>
+        <label class="tgl"><input type="checkbox" id="ai-auto-toggle" onchange="toggleAiAuto(this.checked)"><span></span></label>
+      </div>
+      <div class="field mt"><label>İşletme Profili <span class="muted">(AI yanıtlarının tonunu belirler)</span></label>
+        <textarea class="inp" id="ai-biz-profile" placeholder="Örn: Yapı malzemeleri satan bir bayiyiz. Samimi ama profesyonel bir dille, kısa yanıtlar veririz. Fiyat sorularında DM'e yönlendiririz." onchange="saveBizProfile()"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <h3>💬 Yanıt Bekleyenler — AI önerisiyle yanıtla</h3>
+      <div id="ai-inbox-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== AI ASSISTANT ===== -->
+  <section class="view" id="view-ai-assistant">
+    <div class="card chat-wrap">
+      <div class="chat-log" id="chat-log"></div>
+      <div class="chat-input">
+        <textarea class="inp" id="chat-inp" placeholder="Sosyal medya asistanına sorun… (Örn: Bu hafta Instagram'da hangi içerikleri paylaşmalıyım?)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+        <button class="btn btn-ai" id="chat-send" onclick="sendChat()">Gönder</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AI CAPTION ===== -->
+  <section class="view" id="view-ai-caption">
+    <div class="grid g2">
+      <div class="card">
+        <h3>✨ Açıklama Yazısı Oluştur</h3>
+        <div class="field"><label>Gönderi Konusu</label><textarea class="inp" id="cap-topic" placeholder="Örn: Yeni gelen seramik yapıştırıcı ürünümüzün tanıtımı, %15 açılış indirimi var"></textarea></div>
+        <div class="row">
+          <div class="field"><label>Platform</label>
+            <select class="inp" id="cap-platform">
+              <option>Instagram</option><option>Facebook</option><option>X (Twitter)</option><option>TikTok</option><option>LinkedIn</option><option>YouTube</option>
+            </select>
+          </div>
+          <div class="field"><label>Ton</label>
+            <select class="inp" id="cap-tone">
+              <option>Samimi</option><option>Profesyonel</option><option>Eğlenceli</option><option>Satış odaklı</option><option>İlham verici</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Uzunluk</label>
+            <select class="inp" id="cap-len"><option>Kısa</option><option selected>Orta</option><option>Uzun</option></select>
+          </div>
+          <div class="field"><label>Ekstralar</label>
+            <div class="checks">
+              <label class="pcheck on" id="ck-emoji"><input type="checkbox" checked onchange="this.parentElement.classList.toggle('on',this.checked)">😀 Emoji</label>
+              <label class="pcheck on" id="ck-hash"><input type="checkbox" checked onchange="this.parentElement.classList.toggle('on',this.checked)"># Hashtag</label>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ai" id="cap-btn" onclick="genCaption()">✨ Oluştur (3 seçenek)</button>
+      </div>
+      <div class="card">
+        <h3>📝 Sonuçlar</h3>
+        <div id="cap-out"><div class="empty"><div class="big">✨</div>Konuyu yazın, yapay zeka sizin için 3 farklı açıklama yazısı hazırlasın.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AUTOMATION TEMPLATES ===== -->
+  <section class="view" id="view-auto-templates">
+    <div class="grid g3" id="atpl-grid"></div>
+  </section>
+
+  <!-- ===== AI TEMPLATES ===== -->
+  <section class="view" id="view-ai-templates">
+    <div class="grid g3" id="aitpl-grid"></div>
+  </section>
+
+</main>
+</div>
+
+<!-- ========== MODALS ========== -->
+<div class="overlay" id="ov-connect">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('ov-connect')">✕</button>
+    <h3 id="conn-title">Hesap Bağla</h3>
+    <div class="muted mb" id="conn-sub"></div>
+    <div class="field"><label>Kullanıcı Adı</label><input class="inp" id="conn-user" placeholder="@kullaniciadi"></div>
+    <div class="muted mb">🔒 Gerçek bağlantı için platformun resmî API'si üzerinden yetkilendirme (OAuth) gerekir. Bu demo sürümde hesap bilgisi tarayıcınızda saklanır.</div>
+    <button class="btn btn-p" style="width:100%" onclick="confirmConnect()">Yetkilendir ve Bağla</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-post">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('ov-post')">✕</button>
+    <h3>Gönderi Planla</h3>
+    <div class="field"><label>Platformlar</label><div class="checks" id="post-plats"></div></div>
+    <div class="row">
+      <div class="field"><label>Tarih</label><input class="inp" type="date" id="post-date"></div>
+      <div class="field"><label>Saat</label><input class="inp" type="time" id="post-time" value="12:00"></div>
+    </div>
+    <div class="field"><label>Gönderi Metni</label><textarea class="inp" id="post-caption" placeholder="Gönderi açıklamanızı yazın…"></textarea></div>
+    <div class="field"><label>Görsel URL <span class="muted">(Instagram'da gerçek paylaşım için zorunlu — herkese açık bir jpg/png bağlantısı)</span></label><input class="inp" id="post-img" placeholder="https://ornek.com/gorsel.jpg"></div>
+    <div class="flex">
+      <button class="btn btn-p" style="flex:1" onclick="savePost()">Planla</button>
+      <button class="btn btn-ai" onclick="closeModal('ov-post');go('ai-caption')">✨ AI ile yaz</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+const LS='sosyalpro_v1';
+let state=load()||{accounts:[],posts:[],loops:[],automations:[],inbox:[],chat:[],aiAuto:false,bizProfile:'',seeded:false};
+function load(){try{return JSON.parse(localStorage.getItem(LS))}catch(e){return null}}
+function save(){localStorage.setItem(LS,JSON.stringify(state))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ================= PLATFORMS ================= */
+const PLATFORMS=[
+ {id:'instagram',name:'Instagram',letter:'IG',color:'linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)',solid:'#DD2A7B',desc:'Gerçek bağlantı destekli · gönderi paylaşma, yorum çekme ve yanıtlama'},
+ {id:'facebook',name:'Facebook',letter:'f',color:'#1877F2',solid:'#1877F2',desc:'Sayfa gönderileri · Messenger & yorum yönetimi'},
+ {id:'x',name:'X (Twitter)',letter:'𝕏',color:'#0F1419',solid:'#0F1419',desc:'Tweet planlama · yanıt ve mention takibi'},
+ {id:'tiktok',name:'TikTok',letter:'T',color:'#010101',solid:'#010101',desc:'Video planlama · yorum yönetimi'},
+ {id:'youtube',name:'YouTube',letter:'▶',color:'#FF0000',solid:'#FF0000',desc:'Video ve Shorts planlama · yorum yanıtlama'},
+ {id:'linkedin',name:'LinkedIn',letter:'in',color:'#0A66C2',solid:'#0A66C2',desc:'Şirket sayfası gönderileri · yorum yönetimi'}
+];
+const P=id=>PLATFORMS.find(p=>p.id===id)||PLATFORMS[0];
+
+/* ================= NAV ================= */
+const NAV=[
+ {sec:'Genel'},
+ {id:'dashboard',icon:'🏠',title:'Genel Bakış',sub:'Hesaplarınızın ve içeriklerinizin özeti'},
+ {id:'accounts',icon:'🔗',title:'Hesaplar',sub:'Sosyal medya hesaplarınızı bağlayın ve yönetin'},
+ {sec:'Planlama'},
+ {id:'planner',icon:'📅',title:'İçerik Planlayıcı',sub:'Gönderilerinizi takvim üzerinde planlayın'},
+ {id:'loop',icon:'🔁',title:'Döngülü İçerik Planlayıcı',sub:'Tekrarlayan içerikleri otomatik döngüye alın'},
+ {sec:'Otomasyon'},
+ {id:'automation',icon:'⚙️',title:'Otomasyon Araçları',sub:'Anahtar kelimeye göre otomatik yanıt kuralları'},
+ {id:'auto-templates',icon:'📦',title:'Otomasyon Şablonları',sub:'Tek tıkla kurulabilen hazır otomasyon kuralları'},
+ {sec:'Etkileşim'},
+ {id:'inbox',icon:'💬',title:'Mesaj ve Yorum Yanıtlama',sub:'Tüm platformlardan gelen mesajlar tek kutuda'},
+ {id:'ai-inbox',icon:'🤖',title:'YZ ile Mesaj ve Yorum Yanıtlama',sub:'Yapay zeka destekli yanıt önerileri ve otomatik yanıt'},
+ {sec:'Yapay Zeka'},
+ {id:'ai-assistant',icon:'🧠',title:'YZ Sosyal Medya Asistanı',sub:'Strateji, fikir ve analiz için sohbet asistanı'},
+ {id:'ai-caption',icon:'✨',title:'YZ Açıklama Yazısı Oluşturucu',sub:'Gönderileriniz için hazır açıklama metinleri'},
+ {id:'ai-templates',icon:'🗂️',title:'Yapay Zeka Şablonları',sub:'Hazır AI istemleriyle hızlı içerik üretimi'}
+];
+let currentView='dashboard';
+function renderNav(){
+  const pend=state.inbox.filter(m=>!m.replied).length;
+  document.getElementById('nav').innerHTML=NAV.map(n=>{
+    if(n.sec)return `<div class="nav-label">${n.sec}</div>`;
+    const badge=(n.id==='inbox'&&pend)?`<span class="badge">${pend}</span>`:'';
+    return `<button class="nav-item ${n.id===currentView?'active':''}" onclick="go('${n.id}')"><span class="ni">${n.icon}</span>${n.title}${badge}</button>`;
+  }).join('');
+}
+function go(id){
+  currentView=id;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  const n=NAV.find(x=>x.id===id);
+  document.getElementById('page-title').textContent=n.title;
+  document.getElementById('page-sub').textContent=n.sub;
+  document.getElementById('sidebar').classList.remove('open');
+  renderNav();
+  if(id==='dashboard')renderDash();
+  if(id==='accounts')renderAccounts();
+  if(id==='planner'){renderCal();renderPosts()}
+  if(id==='loop')renderLoops();
+  if(id==='automation')renderAutos();
+  if(id==='inbox')renderInbox();
+  if(id==='ai-inbox')renderAiInbox();
+  if(id==='ai-assistant')renderChat();
+  if(id==='auto-templates')renderAutoTpls();
+  if(id==='ai-templates')renderAiTpls();
+  renderChips();
+  window.scrollTo(0,0);
+}
+
+/* ================= TOP CHIPS ================= */
+function renderChips(){
+  const el=document.getElementById('topChips');
+  if(!state.accounts.length){el.innerHTML=`<button class="btn btn-p btn-sm" onclick="go('accounts')">🔗 Hesap Bağla</button>`;return}
+  el.innerHTML=state.accounts.map(a=>{const p=P(a.platform);
+    return `<span class="chip"><span class="pdot" style="background:${p.color}">${p.letter}</span>${esc(a.username)}</span>`}).join('');
+}
+
+/* ================= ACCOUNTS ================= */
+let connTarget=null;
+function renderAccounts(){
+  document.getElementById('plat-grid').innerHTML=PLATFORMS.map(p=>{
+    const acc=state.accounts.find(a=>a.platform===p.id);
+    let btns;
+    if(acc){
+      btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span><button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
+    }else if(p.id==='instagram'){
+      btns=`<button class="btn btn-p btn-sm" onclick="igLogin()">🔗 Instagram ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
+    }else{
+      btns=`<button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo Bağla</button>`;
+    }
+    return `<div class="card plat-card">
+      <div class="plat-logo" style="background:${p.color}">${p.letter}</div>
+      <div class="meta"><b>${p.name}</b><span>${acc?esc(acc.username)+' · '+acc.followers.toLocaleString('tr-TR')+' takipçi':p.desc}</span></div>
+      ${btns}
+    </div>`;
+  }).join('');
+}
+function openConnect(pid){
+  connTarget=pid;const p=P(pid);
+  document.getElementById('conn-title').textContent=p.name+' Hesabı Bağla';
+  document.getElementById('conn-sub').textContent=p.desc;
+  document.getElementById('conn-user').value='';
+  openModal('ov-connect');
+  setTimeout(()=>document.getElementById('conn-user').focus(),80);
+}
+function confirmConnect(){
+  let u=document.getElementById('conn-user').value.trim();
+  if(!u){toast('Kullanıcı adı girin');return}
+  if(!u.startsWith('@'))u='@'+u;
+  state.accounts.push({id:uid(),platform:connTarget,username:u,followers:800+Math.floor(Math.random()*24000),connectedAt:Date.now()});
+  if(!state.seeded){seedInbox();state.seeded=true}
+  save();closeModal('ov-connect');renderAccounts();renderChips();renderNav();
+  toast(P(connTarget).name+' hesabı bağlandı ✓');
+}
+function disconnect(pid){
+  if(!confirm(P(pid).name+' hesabının bağlantısı kaldırılsın mı?'))return;
+  state.accounts=state.accounts.filter(a=>a.platform!==pid);
+  save();renderAccounts();renderChips();toast('Hesap bağlantısı kaldırıldı');
+}
+
+/* ================= CALENDAR / PLANNER ================= */
+let calDate=new Date();
+const AYLAR=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const GUNLER=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+function calMove(d){calDate.setMonth(calDate.getMonth()+d);renderCal()}
+function ymd(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')}
+function renderCal(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('cal-title').textContent=AYLAR[m]+' '+y;
+  const first=new Date(y,m,1);
+  let start=(first.getDay()+6)%7; // pazartesi başlangıç
+  const days=new Date(y,m+1,0).getDate();
+  const prevDays=new Date(y,m,0).getDate();
+  const todayS=ymd(new Date());
+  let html=GUNLER.map(g=>`<div class="dow">${g}</div>`).join('');
+  const cells=Math.ceil((start+days)/7)*7;
+  for(let i=0;i<cells;i++){
+    let dnum,dim=false,dstr;
+    if(i<start){dnum=prevDays-start+1+i;dim=true;dstr=ymd(new Date(y,m-1,dnum))}
+    else if(i>=start+days){dnum=i-start-days+1;dim=true;dstr=ymd(new Date(y,m+1,dnum))}
+    else{dnum=i-start+1;dstr=ymd(new Date(y,m,dnum))}
+    const dayPosts=state.posts.filter(p=>p.date===dstr).sort((a,b)=>a.time.localeCompare(b.time));
+    const pills=dayPosts.slice(0,2).map(p=>`<div class="pill ${p.status==='yayınlandı'?'pub':''}" title="${esc(p.caption)}">${p.time} ${esc(p.caption.slice(0,14))}</div>`).join('')
+      +(dayPosts.length>2?`<div class="pill">+${dayPosts.length-2} daha</div>`:'');
+    html+=`<div class="day ${dim?'dim':''} ${dstr===todayS?'today':''}" onclick="openPostModal('${dstr}')"><div class="dn">${dnum}</div>${pills}</div>`;
+  }
+  document.getElementById('cal').innerHTML=html;
+}
+function openPostModal(dateStr){
+  document.getElementById('post-plats').innerHTML=platChecks('pm');
+  document.getElementById('post-date').value=dateStr||ymd(new Date());
+  document.getElementById('post-caption').value=window._prefillCaption||'';
+  window._prefillCaption='';
+  openModal('ov-post');
+}
+function platChecks(prefix){
+  const list=state.accounts.length?PLATFORMS.filter(p=>state.accounts.some(a=>a.platform===p.id)):PLATFORMS;
+  return list.map(p=>`<label class="pcheck" id="${prefix}-${p.id}"><input type="checkbox" value="${p.id}" onchange="this.parentElement.classList.toggle('on',this.checked)">${p.name}</label>`).join('');
+}
+function checkedPlats(container){return [...document.querySelectorAll('#'+container+' input:checked')].map(i=>i.value)}
+function savePost(){
+  const plats=checkedPlats('post-plats');
+  const date=document.getElementById('post-date').value;
+  const time=document.getElementById('post-time').value;
+  const cap=document.getElementById('post-caption').value.trim();
+  if(!plats.length){toast('En az bir platform seçin');return}
+  if(!date||!cap){toast('Tarih ve gönderi metni gerekli');return}
+  state.posts.push({id:uid(),platforms:plats,date,time,caption:cap,img:document.getElementById('post-img').value.trim(),status:'planlandı'});
+  save();closeModal('ov-post');renderCal();renderPosts();renderDash();
+  toast('Gönderi planlandı ✓');
+}
+function renderPosts(){
+  const el=document.getElementById('post-list');
+  if(!state.posts.length){el.innerHTML=`<div class="empty"><div class="big">📅</div>Henüz planlanmış gönderi yok. Takvimde bir güne tıklayın.</div>`;return}
+  const sorted=[...state.posts].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  el.innerHTML=sorted.map(p=>`<div class="list-item">
+    <div style="flex:1;min-width:0">
+      <div class="flex" style="gap:6px;flex-wrap:wrap">${p.platforms.map(x=>{const pl=P(x);return `<span class="pdot" style="width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:9px;font-weight:800;background:${pl.color}">${pl.letter}</span>`}).join('')}
+      <b style="font-size:13px">${p.date.split('-').reverse().join('.')} · ${p.time}</b>
+      <span class="tag ${p.status==='yayınlandı'?'tag-gray':'tag-mint'}">${p.status}</span></div>
+      <div class="muted" style="margin-top:3px;font-size:13px;color:var(--text)">${esc(p.caption)}</div>
+    </div>
+    ${p.status!=='yayınlandı'?`<button class="btn btn-ghost btn-sm" onclick="publishPost('${p.id}')">Şimdi Yayınla</button>`:''}
+    <button class="btn btn-danger btn-sm" onclick="delPost('${p.id}')">Sil</button>
+  </div>`).join('');
+}
+async function publishPost(id){
+  const p=state.posts.find(x=>x.id===id);if(!p)return;
+  const a=igAccount();
+  if(p.platforms.includes('instagram')&&a){
+    if(!p.img){toast("Instagram'da gerçek paylaşım için gönderiye görsel URL ekleyin");return}
+    toast("Instagram'da yayınlanıyor…");
+    try{
+      const d1=await igPost('/me/media',{image_url:p.img,caption:p.caption});
+      const d2=await igPost('/me/media_publish',{creation_id:d1.id});
+      if(!d2.id)throw new Error('yayın onayı alınamadı');
+      toast("Instagram'da yayınlandı 🚀");
+    }catch(e){toast('Yayınlanamadı: '+e.message);return}
+  }else{
+    toast('Gönderi yayınlandı 🚀');
+  }
+  p.status='yayınlandı';save();renderPosts();renderCal();renderDash();
+}
+function delPost(id){state.posts=state.posts.filter(x=>x.id!==id);save();renderPosts();renderCal();renderDash()}
+
+/* ================= LOOPS ================= */
+const FREQ_TR={daily:'Her gün',weekly:'Haftada bir',mwf:'Pzt/Çar/Cum',weekend:'Hafta sonu'};
+function initLoopPlats(){document.getElementById('loop-plats').innerHTML=platChecks('lp')}
+function addLoop(){
+  const name=document.getElementById('loop-name').value.trim();
+  const plats=checkedPlats('loop-plats');
+  const items=document.getElementById('loop-items').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!name||!plats.length||!items.length){toast('Ad, platform ve en az bir içerik gerekli');return}
+  state.loops.push({id:uid(),name,platforms:plats,freq:document.getElementById('loop-freq').value,time:document.getElementById('loop-time').value,items,nextIndex:0,active:true});
+  save();renderLoops();
+  document.getElementById('loop-name').value='';document.getElementById('loop-items').value='';
+  toast('Döngü başlatıldı 🔁');
+}
+function renderLoops(){
+  initLoopPlats();
+  const el=document.getElementById('loop-list');
+  if(!state.loops.length){el.innerHTML=`<div class="empty"><div class="big">🔁</div>Aktif döngü yok. İçerik havuzunuzu oluşturun; gönderiler sırayla otomatik paylaşılsın.</div>`;return}
+  el.innerHTML=state.loops.map(l=>`<div class="list-item">
+    <div style="flex:1;min-width:0">
+      <b style="font-size:13.5px">${esc(l.name)}</b>
+      <div class="muted">${FREQ_TR[l.freq]} · ${l.time} · ${l.items.length} içerik · sıradaki: "${esc(l.items[l.nextIndex%l.items.length].slice(0,32))}…"</div>
+      <div class="flex" style="gap:5px;margin-top:4px">${l.platforms.map(x=>`<span class="tag tag-blue">${P(x).name}</span>`).join('')}</div>
+    </div>
+    <label class="tgl"><input type="checkbox" ${l.active?'checked':''} onchange="toggleLoop('${l.id}',this.checked)"><span></span></label>
+    <button class="btn btn-danger btn-sm" onclick="delLoop('${l.id}')">Sil</button>
+  </div>`).join('');
+}
+function toggleLoop(id,v){const l=state.loops.find(x=>x.id===id);if(l){l.active=v;save();toast(v?'Döngü aktif':'Döngü duraklatıldı')}}
+function delLoop(id){state.loops=state.loops.filter(x=>x.id!==id);save();renderLoops()}
+
+/* ================= AUTOMATIONS ================= */
+const TRIG_TR={comment:'Yorumda kelime',dm:"DM'de kelime",newfollow:'Yeni takipçi',mention:'Bahsetme'};
+function addAutomation(){
+  const name=document.getElementById('auto-name').value.trim();
+  const reply=document.getElementById('auto-reply').value.trim();
+  const kw=document.getElementById('auto-keywords').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const trig=document.getElementById('auto-trigger').value;
+  if(!name||!reply){toast('Kural adı ve yanıt metni gerekli');return}
+  if((trig==='comment'||trig==='dm')&&!kw.length){toast('Anahtar kelime girin');return}
+  state.automations.push({id:uid(),name,trigger:trig,keywords:kw,reply,active:true,hits:0});
+  save();renderAutos();renderDash();
+  document.getElementById('auto-name').value='';document.getElementById('auto-keywords').value='';document.getElementById('auto-reply').value='';
+  toast('Otomasyon kuralı oluşturuldu ⚙️');
+}
+function renderAutos(){
+  const el=document.getElementById('auto-list');
+  if(!state.automations.length){el.innerHTML=`<div class="empty"><div class="big">⚙️</div>Henüz kural yok. Soldan yeni bir kural oluşturun veya hazır şablonları kurun.</div>`;return}
+  el.innerHTML=state.automations.map(a=>`<div class="list-item">
+    <div style="flex:1;min-width:0">
+      <b style="font-size:13.5px">${esc(a.name)}</b>
+      <div class="muted">${TRIG_TR[a.trigger]}${a.keywords.length?': '+a.keywords.map(k=>'"'+esc(k)+'"').join(', '):''} → "${esc(a.reply.slice(0,45))}${a.reply.length>45?'…':''}"</div>
+      <div class="muted" style="font-size:11.5px;margin-top:2px">🔄 ${a.hits} kez tetiklendi</div>
+    </div>
+    <label class="tgl"><input type="checkbox" ${a.active?'checked':''} onchange="toggleAuto('${a.id}',this.checked)"><span></span></label>
+    <button class="btn btn-danger btn-sm" onclick="delAuto('${a.id}')">Sil</button>
+  </div>`).join('');
+}
+function toggleAuto(id,v){const a=state.automations.find(x=>x.id===id);if(a){a.active=v;save();renderDash()}}
+function delAuto(id){state.automations=state.automations.filter(x=>x.id!==id);save();renderAutos();renderDash()}
+
+/* ================= INBOX ================= */
+const DEMO_MSGS=[
+ {platform:'instagram',from:'ayse.k',type:'comment',text:'Bu ürünün fiyatı nedir acaba?'},
+ {platform:'instagram',from:'mehmet_usta34',type:'dm',text:'Merhaba, toptan alımda indirim yapıyor musunuz?'},
+ {platform:'facebook',from:'Zeynep Aydın',type:'comment',text:'Kargo kaç günde geliyor?'},
+ {platform:'x',from:'canerd',type:'dm',text:'Ürünleriniz stokta var mı? Acil lazım.'},
+ {platform:'facebook',from:'Hüseyin Demir',type:'comment',text:'Harika ürünler, elinize sağlık 👏'},
+ {platform:'instagram',from:'elifce.dizayn',type:'dm',text:'İade koşullarınız nasıl öğrenebilir miyim?'},
+ {platform:'youtube',from:'TeknikTamir',type:'comment',text:'Video çok faydalı olmuş, montaj detayını da paylaşır mısınız?'},
+ {platform:'tiktok',from:'usta.isler',type:'comment',text:'Adres neresi? Gelip bakmak istiyorum'},
+ {platform:'linkedin',from:'Selin Kaya',type:'comment',text:'Kurumsal projeler için teklif alabilir miyiz?'},
+ {platform:'x',from:'burak_krmz',type:'dm',text:'Fiyat listesi paylaşabilir misiniz?'}
+];
+function seedInbox(){
+  const now=Date.now();
+  DEMO_MSGS.slice(0,6).forEach((m,i)=>{
+    state.inbox.push({id:uid(),...m,time:now-(i+1)*3600e3*2,replied:false,reply:''});
+  });
+}
+let demoIdx=6;
+function simulateIncoming(){
+  const m=DEMO_MSGS[demoIdx%DEMO_MSGS.length];demoIdx++;
+  const msg={id:uid(),...m,time:Date.now(),replied:false,reply:''};
+  // otomasyon kurallarını dene
+  const rule=state.automations.find(a=>a.active&&(a.trigger===m.type||((a.trigger==='comment'||a.trigger==='dm')&&a.trigger===m.type))&&a.keywords.some(k=>m.text.toLocaleLowerCase('tr').includes(k.toLocaleLowerCase('tr'))));
+  if(rule){msg.replied=true;msg.reply=rule.reply;msg.auto=true;rule.hits++;}
+  state.inbox.unshift(msg);
+  save();renderInbox();renderNav();renderDash();
+  toast(rule?'Yeni mesaj geldi — otomasyon kuralı otomatik yanıtladı ⚙️':'Yeni mesaj geldi 📥');
+  if(!rule&&state.aiAuto){aiReplyTo(msg.id,true)}
+}
+function timeAgo(t){
+  const d=Math.floor((Date.now()-t)/60000);
+  if(d<1)return 'şimdi';if(d<60)return d+' dk önce';
+  const h=Math.floor(d/60);if(h<24)return h+' sa önce';
+  return Math.floor(h/24)+' gün önce';
+}
+function msgHTML(m,aiMode){
+  const p=P(m.platform);
+  const initial=esc(m.from.charAt(0).toUpperCase());
+  return `<div class="msg">
+    <div class="avatar" style="background:${p.color}">${initial}</div>
+    <div class="body">
+      <div class="who"><b>${esc(m.from)}</b>
+        <span class="tag tag-blue">${p.name}</span>
+        <span class="tag ${m.type==='dm'?'tag-amber':'tag-gray'}">${m.type==='dm'?'DM':'Yorum'}</span>
+        <span class="muted">${timeAgo(m.time)}</span></div>
+      <div class="txt">${esc(m.text)}</div>
+      ${m.replied
+        ?`<div class="replied"><b>${m.auto?'⚙️ Otomasyon yanıtı':(m.ai?'🤖 AI yanıtı':'✓ Yanıtlandı')}</b>${esc(m.reply)}</div>`
+        :`<div class="reply-box">
+            <textarea class="inp" id="r-${m.id}" placeholder="Yanıtınızı yazın…" style="min-height:56px"></textarea>
+            <div class="flex" style="margin-top:8px">
+              <button class="btn btn-p btn-sm" onclick="sendReply('${m.id}')">Yanıtla</button>
+              ${aiMode?`<button class="btn btn-ai btn-sm" id="aib-${m.id}" onclick="aiReplyTo('${m.id}',false)">✨ AI Yanıt Öner</button>`:''}
+            </div>
+          </div>`}
+    </div>
+  </div>`;
+}
+function renderInbox(){
+  const f=document.getElementById('inbox-filter').value;
+  let list=state.inbox;
+  if(f==='dm')list=list.filter(m=>m.type==='dm');
+  if(f==='comment')list=list.filter(m=>m.type==='comment');
+  if(f==='pending')list=list.filter(m=>!m.replied);
+  document.getElementById('inbox-count').textContent=list.length+' mesaj · '+state.inbox.filter(m=>!m.replied).length+' yanıt bekliyor';
+  document.getElementById('inbox-list').innerHTML=list.length
+    ?list.map(m=>msgHTML(m,false)).join('')
+    :`<div class="empty"><div class="big">💬</div>Bu filtrede mesaj yok.${state.accounts.length?'':' Önce bir hesap bağlayın.'}</div>`;
+}
+function renderAiInbox(){
+  document.getElementById('ai-auto-toggle').checked=state.aiAuto;
+  document.getElementById('ai-biz-profile').value=state.bizProfile;
+  const pend=state.inbox.filter(m=>!m.replied);
+  document.getElementById('ai-inbox-list').innerHTML=pend.length
+    ?pend.map(m=>msgHTML(m,true)).join('')
+    :`<div class="empty"><div class="big">🤖</div>Yanıt bekleyen mesaj yok. Gelen Kutusu'ndan "Yeni mesaj simüle et" ile deneyebilirsiniz.</div>`;
+}
+async function sendReply(id,text){
+  const m=state.inbox.find(x=>x.id===id);if(!m)return;
+  const val=text||document.getElementById('r-'+id)?.value.trim();
+  if(!val){toast('Yanıt metni boş');return}
+  if(m.real&&m.igId){
+    const a=igAccount();
+    if(!a){toast('Instagram bağlantısı bulunamadı — Hesaplar sayfasından yeniden bağlanın');return}
+    try{
+      await igPost('/'+m.igId+'/replies',{message:val});
+    }catch(e){toast('Instagram yanıtı gönderilemedi: '+e.message);return}
+  }
+  m.replied=true;m.reply=val;
+  save();renderInbox();renderAiInbox();renderNav();renderDash();
+  toast(m.real?"Yanıt Instagram'a gönderildi ✓":'Yanıt gönderildi ✓');
+}
+function toggleAiAuto(v){state.aiAuto=v;save();toast(v?'AI otomatik yanıt açıldı 🤖':'AI otomatik yanıt kapatıldı')}
+function saveBizProfile(){state.bizProfile=document.getElementById('ai-biz-profile').value;save()}
+
+/* ================= AI CORE ================= */
+async function askAI(messages,system){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system,messages})
+  });
+  if(!res.ok)throw new Error('API '+res.status);
+  const data=await res.json();
+  return (data.content||[]).map(c=>c.type==='text'?c.text:'').join('').trim();
+}
+const AI_FAIL='Yapay zeka servisine şu an ulaşılamıyor. Bu özellik Claude içinde önizlemede çalışır; kendi sitenizde kullanmak için bir API anahtarıyla sunucu tarafı bağlantı gerekir.';
+
+async function aiReplyTo(id,autoSend){
+  const m=state.inbox.find(x=>x.id===id);if(!m)return;
+  const btn=document.getElementById('aib-'+id);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Yazılıyor…'}
+  const sys='Sen bir işletmenin sosyal medya yöneticisisin. Türkçe, kısa (1-3 cümle), samimi ve profesyonel yanıtlar yazarsın. Sadece yanıt metnini döndür, başka hiçbir şey yazma.'+(state.bizProfile?' İşletme profili: '+state.bizProfile:'');
+  try{
+    const out=await askAI([{role:'user',content:`Platform: ${P(m.platform).name}\nTür: ${m.type==='dm'?'Özel mesaj':'Yorum'}\nKullanıcı (${m.from}) şöyle yazdı: "${m.text}"\n\nBu mesaja işletme adına uygun bir yanıt yaz.`}],sys);
+    if(autoSend){m.replied=true;m.reply=out;m.ai=true;save();renderInbox();renderAiInbox();renderNav();toast('AI otomatik yanıt gönderildi 🤖')}
+    else{const ta=document.getElementById('r-'+id);if(ta)ta.value=out;toast('AI yanıt önerisi hazır — düzenleyip gönderebilirsiniz')}
+  }catch(e){toast(AI_FAIL)}
+  if(btn){btn.disabled=false;btn.innerHTML='✨ AI Yanıt Öner'}
+}
+
+/* ================= AI ASSISTANT CHAT ================= */
+function renderChat(){
+  const log=document.getElementById('chat-log');
+  if(!state.chat.length){
+    log.innerHTML=`<div class="bubble ai">Merhaba! 👋 Ben SosyalPro yapay zeka asistanınızım. Size şu konularda yardımcı olabilirim:\n\n• İçerik stratejisi ve gönderi fikirleri\n• En iyi paylaşım saatleri\n• Hashtag önerileri\n• Rakip ve trend analizi\n• Kampanya planlama\n\nNe üzerinde çalışalım?</div>`;
+  }else{
+    log.innerHTML=state.chat.map(c=>`<div class="bubble ${c.role==='user'?'user':'ai'}">${esc(c.content)}</div>`).join('');
+  }
+  log.scrollTop=log.scrollHeight;
+}
+async function sendChat(promptOverride){
+  const inp=document.getElementById('chat-inp');
+  const text=(promptOverride||inp.value).trim();
+  if(!text)return;
+  inp.value='';
+  state.chat.push({role:'user',content:text});
+  renderChat();
+  const log=document.getElementById('chat-log');
+  const tmp=document.createElement('div');tmp.className='bubble ai';tmp.innerHTML='<span class="spin" style="border-color:#CBD8D4;border-top-color:var(--mint)"></span> Düşünüyor…';
+  log.appendChild(tmp);log.scrollTop=log.scrollHeight;
+  const btn=document.getElementById('chat-send');btn.disabled=true;
+  const accInfo=state.accounts.length?('Bağlı hesaplar: '+state.accounts.map(a=>P(a.platform).name+' ('+a.username+', '+a.followers+' takipçi)').join(', ')+'.'):'Henüz hesap bağlanmamış.';
+  const sys='Sen SosyalPro adlı sosyal medya yönetim platformunun uzman asistanısın. Türkçe konuşursun. Sosyal medya stratejisi, içerik üretimi, hashtag, paylaşım saatleri ve kampanyalar konusunda somut, uygulanabilir öneriler verirsin. Yanıtların düzenli ve makul uzunlukta olsun. '+accInfo+(state.bizProfile?' İşletme profili: '+state.bizProfile:'');
+  try{
+    const out=await askAI(state.chat.slice(-12),sys);
+    state.chat.push({role:'assistant',content:out});
+  }catch(e){
+    state.chat.push({role:'assistant',content:AI_FAIL});
+  }
+  save();btn.disabled=false;renderChat();
+}
+
+/* ================= AI CAPTION ================= */
+async function genCaption(prefillTopic){
+  if(prefillTopic)document.getElementById('cap-topic').value=prefillTopic;
+  const topic=document.getElementById('cap-topic').value.trim();
+  if(!topic){toast('Gönderi konusunu yazın');return}
+  const plat=document.getElementById('cap-platform').value;
+  const tone=document.getElementById('cap-tone').value;
+  const len=document.getElementById('cap-len').value;
+  const emoji=document.querySelector('#ck-emoji input').checked;
+  const hash=document.querySelector('#ck-hash input').checked;
+  const btn=document.getElementById('cap-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Oluşturuluyor…';
+  document.getElementById('cap-out').innerHTML='<div class="empty"><div class="big">✨</div>Yapay zeka yazıyor…</div>';
+  const prompt=`${plat} için ${tone.toLocaleLowerCase('tr')} tonda, ${len.toLocaleLowerCase('tr')} uzunlukta 3 farklı Türkçe gönderi açıklama yazısı üret. Konu: "${topic}". ${emoji?'Emoji kullan.':'Emoji kullanma.'} ${hash?'Her birinin sonuna 4-6 uygun hashtag ekle.':'Hashtag ekleme.'} SADECE geçerli JSON döndür, markdown veya açıklama yazma. Format: {"captions":["...","...","..."]}`;
+  try{
+    const raw=await askAI([{role:'user',content:prompt}],'Sen usta bir Türkçe sosyal medya metin yazarısın. Sadece istenen JSON çıktısını verirsin.');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    document.getElementById('cap-out').innerHTML=parsed.captions.map((c,i)=>`
+      <div class="ai-out" style="margin-bottom:12px">
+        <div class="spread mb" style="margin-bottom:8px"><b style="font-family:'Sora';font-size:12.5px;color:#6A5ACD">SEÇENEK ${i+1}</b>
+        <div class="flex" style="gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="copyCap(this)">📋 Kopyala</button>
+          <button class="btn btn-p btn-sm" onclick="capToPlanner(this)">📅 Planla</button>
+        </div></div>
+        <div class="cap-text">${esc(c)}</div>
+      </div>`).join('');
+  }catch(e){
+    document.getElementById('cap-out').innerHTML=`<div class="empty"><div class="big">⚠️</div>${AI_FAIL}</div>`;
+  }
+  btn.disabled=false;btn.innerHTML='✨ Oluştur (3 seçenek)';
+}
+function copyCap(btn){
+  const txt=btn.closest('.ai-out').querySelector('.cap-text').innerText;
+  navigator.clipboard.writeText(txt).then(()=>toast('Panoya kopyalandı 📋'));
+}
+function capToPlanner(btn){
+  window._prefillCaption=btn.closest('.ai-out').querySelector('.cap-text').innerText;
+  go('planner');openPostModal();
+}
+
+/* ================= AUTOMATION TEMPLATES ================= */
+const AUTO_TPLS=[
+ {ic:'💰',bg:'mint-bg',name:'Fiyat Soranlara Yanıt',trigger:'comment',kw:['fiyat','ücret','kaç para','ne kadar'],reply:'Merhaba! 😊 Güncel fiyat bilgisi için size DM üzerinden ulaşıyoruz, mesaj kutunuzu kontrol edebilirsiniz.',desc:'Yorumlarda fiyat soran herkese anında yanıt verir ve DM\'e yönlendirir.'},
+ {ic:'🚚',bg:'blue-bg',name:'Kargo Bilgilendirme',trigger:'comment',kw:['kargo','teslimat','ne zaman gelir'],reply:'Siparişleriniz 1-3 iş günü içinde kargoya verilir. 🚚 Takip numaranız SMS ile iletilir.',desc:'Kargo ve teslimat sorularını otomatik yanıtlar.'},
+ {ic:'👋',bg:'amber-bg',name:'Yeni Takipçi Karşılama',trigger:'newfollow',kw:[],reply:'Aramıza hoş geldiniz! 🎉 Yeni ürün ve kampanyalarımızdan ilk siz haberdar olacaksınız.',desc:'Sizi takip eden herkese otomatik hoş geldin DM\'i gönderir.'},
+ {ic:'📍',bg:'coral-bg',name:'Adres & Konum Yanıtı',trigger:'dm',kw:['adres','nerede','konum','mağaza'],reply:'Mağazamız hafta içi 08:30-18:30, cumartesi 09:00-17:00 arası açıktır. 📍 Konum için profilimizdeki bağlantıya tıklayabilirsiniz.',desc:'Adres ve çalışma saati sorularını DM\'de otomatik yanıtlar.'},
+ {ic:'↩️',bg:'mint-bg',name:'İade & Değişim',trigger:'dm',kw:['iade','değişim','geri gönder'],reply:'Ürünlerimizde 14 gün içinde koşulsuz iade hakkınız vardır. ↩️ Sipariş numaranızı iletirseniz hemen işlem başlatalım.',desc:'İade sürecini soranlara anında bilgi verir.'},
+ {ic:'🙏',bg:'blue-bg',name:'Teşekkür Yanıtı',trigger:'comment',kw:['teşekkür','harika','süper','elinize sağlık'],reply:'Çok teşekkür ederiz! 🙏 Desteğiniz bizim için çok değerli. ❤️',desc:'Olumlu yorumlara otomatik teşekkür eder, etkileşimi artırır.'}
+];
+function renderAutoTpls(){
+  document.getElementById('atpl-grid').innerHTML=AUTO_TPLS.map((t,i)=>`
+    <div class="card tpl">
+      <div class="t-head"><div class="t-ic ${t.bg}">${t.ic}</div><b>${t.name}</b></div>
+      <p>${t.desc}</p>
+      <div class="muted" style="font-size:12px">${TRIG_TR[t.trigger]}${t.kw.length?' · '+t.kw.map(k=>'"'+k+'"').join(', '):''}</div>
+      <div class="t-foot"><button class="btn btn-p btn-sm" onclick="installTpl(${i})">＋ Kur</button></div>
+    </div>`).join('');
+}
+function installTpl(i){
+  const t=AUTO_TPLS[i];
+  if(state.automations.some(a=>a.name===t.name)){toast('Bu şablon zaten kurulu');return}
+  state.automations.push({id:uid(),name:t.name,trigger:t.trigger,keywords:[...t.kw],reply:t.reply,active:true,hits:0});
+  save();toast('"'+t.name+'" kuruldu ✓ — Otomasyon Araçları\'nda aktif');renderDash();
+}
+
+/* ================= AI TEMPLATES ================= */
+const AI_TPLS=[
+ {ic:'📆',bg:'mint-bg',name:'Haftalık İçerik Takvimi',desc:'İşletmeniz için 7 günlük hazır içerik planı ve gönderi fikirleri üretir.',mode:'chat',prompt:'İşletmem için önümüzdeki 7 güne yönelik bir sosyal medya içerik takvimi hazırla. Her gün için gönderi türü, konu ve kısa açıklama öner.'},
+ {ic:'🔥',bg:'coral-bg',name:'Viral Reels Fikirleri',desc:'Sektörünüze uygun, trend olma potansiyeli yüksek 10 kısa video fikri.',mode:'chat',prompt:'Sektörüme uygun, viral olma potansiyeli yüksek 10 Instagram Reels / TikTok video fikri ver. Her fikir için çekim önerisi de ekle.'},
+ {ic:'#️⃣',bg:'blue-bg',name:'Hashtag Seti Oluşturucu',desc:'Nişinize özel yüksek / orta / düşük rekabetli hashtag grupları.',mode:'chat',prompt:'İşletmem için 30 hashtag öner: 10 yüksek hacimli, 10 orta, 10 niş. Türkçe ve İngilizce karışık olabilir, gruplar halinde listele.'},
+ {ic:'🎯',bg:'amber-bg',name:'Kampanya Duyurusu',desc:'İndirim ve kampanyalarınız için dikkat çekici duyuru metni.',mode:'caption',prompt:'Yeni başlayan indirim kampanyamızın duyurusu — aciliyet hissi veren, harekete geçirici bir metin'},
+ {ic:'🛍️',bg:'mint-bg',name:'Ürün Tanıtım Yazısı',desc:'Yeni ürününüz için satış odaklı, faydaları öne çıkaran açıklama.',mode:'caption',prompt:'Yeni gelen ürünümüzün tanıtımı — ürünün faydalarını öne çıkaran, satın almaya teşvik eden bir metin'},
+ {ic:'💬',bg:'blue-bg',name:'Etkileşim Sorusu',desc:'Takipçilerinizi yorum yapmaya teşvik eden soru gönderileri.',mode:'caption',prompt:'Takipçilerimizin yorum yapmasını sağlayacak, sektörümüzle ilgili eğlenceli bir soru gönderisi'},
+ {ic:'📖',bg:'coral-bg',name:'Marka Hikayesi',desc:'İşletmenizin kuruluş hikayesini duygusal bağ kuran bir dille anlatır.',mode:'caption',prompt:'İşletmemizin kuruluş hikayesini ve değerlerini anlatan, takipçilerle duygusal bağ kuran bir gönderi metni'},
+ {ic:'📊',bg:'amber-bg',name:'Rakip Analizi Rehberi',desc:'Rakiplerinizi analiz etmek için adım adım kontrol listesi.',mode:'chat',prompt:'Sosyal medyada rakip analizi yapmak için adım adım bir rehber ve kontrol listesi hazırla. Hangi metriklere bakmalıyım?'},
+ {ic:'⏰',bg:'mint-bg',name:'En İyi Paylaşım Saatleri',desc:'Platform bazında ideal paylaşım gün ve saatleri önerisi.',mode:'chat',prompt:'Instagram, Facebook, X ve TikTok için Türkiye\'deki kitleye göre en iyi paylaşım gün ve saatlerini tablo halinde öner.'}
+];
+function renderAiTpls(){
+  document.getElementById('aitpl-grid').innerHTML=AI_TPLS.map((t,i)=>`
+    <div class="card tpl">
+      <div class="t-head"><div class="t-ic ${t.bg}">${t.ic}</div><b>${t.name}</b></div>
+      <p>${t.desc}</p>
+      <div class="t-foot"><button class="btn btn-ai btn-sm" onclick="useAiTpl(${i})">✨ Kullan</button></div>
+    </div>`).join('');
+}
+function useAiTpl(i){
+  const t=AI_TPLS[i];
+  if(t.mode==='chat'){go('ai-assistant');sendChat(t.prompt)}
+  else{go('ai-caption');genCaption(t.prompt)}
+}
+
+/* ================= DASHBOARD ================= */
+function renderDash(){
+  document.getElementById('st-acc').textContent=state.accounts.length;
+  document.getElementById('st-plan').textContent=state.posts.filter(p=>p.status!=='yayınlandı').length;
+  document.getElementById('st-auto').textContent=state.automations.filter(a=>a.active).length;
+  document.getElementById('st-msg').textContent=state.inbox.filter(m=>!m.replied).length;
+  const up=[...state.posts].filter(p=>p.status!=='yayınlandı').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,4);
+  document.getElementById('dash-upcoming').innerHTML=up.length?up.map(p=>`<div class="list-item">
+      <div style="flex:1;min-width:0"><b style="font-size:13px">${p.date.split('-').reverse().join('.')} · ${p.time}</b>
+      <div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.caption)}</div></div>
+      <span class="tag tag-mint">planlandı</span></div>`).join('')
+    :`<div class="empty" style="padding:20px"><div class="big">📅</div>Planlanmış gönderi yok.</div>`;
+  const recent=state.inbox.slice(0,4);
+  document.getElementById('dash-inbox').innerHTML=recent.length?recent.map(m=>{const p=P(m.platform);return `<div class="list-item">
+      <div class="avatar" style="width:30px;height:30px;font-size:12px;background:${p.color}">${esc(m.from.charAt(0).toUpperCase())}</div>
+      <div style="flex:1;min-width:0"><b style="font-size:13px">${esc(m.from)}</b>
+      <div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.text)}</div></div>
+      ${m.replied?'<span class="tag tag-gray">yanıtlandı</span>':'<span class="tag tag-coral">bekliyor</span>'}</div>`}).join('')
+    :`<div class="empty" style="padding:20px"><div class="big">💬</div>Hesap bağlayınca mesajlar burada görünür.</div>`;
+}
+
+/* ================= INSTAGRAM GERÇEK BAĞLANTI ================= */
+const IG_API='https://graph.instagram.com/v23.0';
+function igLogin(){window.location.href='/api/auth/login'}
+function igAccount(){return state.accounts.find(a=>a.platform==='instagram'&&a.real)}
+async function igGet(path,params){
+  const a=igAccount();if(!a)throw new Error('Instagram bağlı değil');
+  const q=new URLSearchParams({...(params||{}),access_token:a.token});
+  const r=await fetch(IG_API+path+'?'+q.toString());
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message||'API hatası');
+  return d;
+}
+async function igPost(path,params){
+  const a=igAccount();if(!a)throw new Error('Instagram bağlı değil');
+  const r=await fetch(IG_API+path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({...(params||{}),access_token:a.token})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message||'API hatası');
+  return d;
+}
+async function handleOAuthReturn(){
+  if(!location.hash)return;
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(h.get('ig_error')){toast('Instagram bağlantı hatası: '+h.get('ig_error'));history.replaceState(null,'',location.pathname);return}
+  const token=h.get('ig_token');
+  if(!token)return;
+  history.replaceState(null,'',location.pathname);
+  toast('Instagram doğrulandı, profil bilgisi alınıyor…');
+  try{
+    const q=new URLSearchParams({fields:'user_id,username,followers_count,media_count',access_token:token});
+    const r=await fetch(IG_API+'/me?'+q.toString());
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    state.accounts=state.accounts.filter(a=>a.platform!=='instagram');
+    state.accounts.push({id:uid(),platform:'instagram',real:true,token,igId:d.user_id||h.get('ig_user')||'',username:'@'+d.username,followers:d.followers_count||0,mediaCount:d.media_count||0,expiresAt:Date.now()+(parseInt(h.get('ig_expires')||'3600',10)*1000),connectedAt:Date.now()});
+    if(!state.seeded)state.seeded=true;
+    save();go('accounts');
+    toast('@'+d.username+' gerçek bağlantıyla bağlandı ✓');
+  }catch(e){toast('Profil alınamadı: '+e.message)}
+}
+async function igRefreshIfNeeded(){
+  const a=igAccount();if(!a||!a.expiresAt)return;
+  if(a.expiresAt-Date.now()<10*24*3600e3){
+    try{
+      const r=await fetch('https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token='+encodeURIComponent(a.token));
+      const d=await r.json();
+      if(d.access_token){a.token=d.access_token;a.expiresAt=Date.now()+(d.expires_in||5184000)*1000;save()}
+    }catch(e){/* sessiz geç */}
+  }
+}
+async function igSyncComments(){
+  const a=igAccount();
+  if(!a){toast('Önce Hesaplar sayfasından "Instagram ile Bağlan" ile gerçek bağlantı kurun');return}
+  toast('Instagram yorumları çekiliyor…');
+  try{
+    const media=await igGet('/me/media',{fields:'id,caption,comments_count,timestamp',limit:'10'});
+    let added=0;
+    for(const m of (media.data||[])){
+      if(!m.comments_count)continue;
+      const cd=await igGet('/'+m.id+'/comments',{fields:'id,text,username,timestamp'});
+      for(const c of (cd.data||[])){
+        if(('@'+c.username)===a.username)continue;
+        if(state.inbox.some(x=>x.igId===c.id))continue;
+        state.inbox.unshift({id:uid(),igId:c.id,real:true,platform:'instagram',from:c.username,type:'comment',text:c.text,time:new Date(c.timestamp).getTime()||Date.now(),replied:false,reply:''});
+        added++;
+      }
+    }
+    save();renderInbox();renderNav();renderDash();
+    toast(added?added+' yeni yorum alındı 📸':'Yeni yorum bulunamadı');
+  }catch(e){
+    toast('Yorumlar alınamadı: '+e.message);
+  }
+}
+
+/* ================= MODAL / INIT ================= */
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'))});
+
+renderNav();
+go('dashboard');
+handleOAuthReturn();
+igRefreshIfNeeded();
+</script>
+</body>
+</html>
