@@ -740,8 +740,11 @@ async function publishPost(id){
 /* Tanıdaki hazır konteyneri gerçekten yayınlar — uçtan uca test */
 async function igTestPublish(){
   const a=igAccount();if(!a){alert('Instagram bağlı değil');return}
-  const lastImg=(state.posts.filter(p=>p.img).slice(-1)[0]||{}).img;
-  if(!lastImg){alert('Önce bir gönderiye görsel yükleyin');return}
+  let lastImg=lastImageUrl();
+  if(!lastImg){
+    lastImg=(prompt('Test için görsel URL yapıştırın (herkese açık bir JPEG):','')||'').trim();
+    if(!lastImg)return;
+  }
   if(!confirm('Instagram hesabınıza GERÇEK bir test gönderisi paylaşılacak.\n\nDevam edilsin mi?'))return;
   try{
     toast('Görsel hazırlanıyor…');
@@ -1172,6 +1175,10 @@ async function igSyncComments(){
   return added;
 }
 
+function lastImageUrl(){
+  const fromPost=(state.posts.filter(p=>p.img).slice(-1)[0]||{}).img;
+  return fromPost||state.lastUpload||'';
+}
 async function igDiagnose(){
   const a=igAccount();
   if(!a){alert('Instagram bağlı değil.');return}
@@ -1190,7 +1197,7 @@ async function igDiagnose(){
     add('2) Yayın izni', d.error?('HATA — '+d.error.message+' (instagram_business_content_publish izni eksik olabilir; hesabı kaldırıp yeniden bağlayın)'):'var ✓ (24 saatte kullanılan: '+(((d.data||[])[0]||{}).quota_usage??0)+'/25)');
   }catch(e){add('2) Yayın izni','HATA — '+e.message)}
   // 3) Son yüklenen görsel herkese açık mı
-  const lastImg=(state.posts.filter(p=>p.img).slice(-1)[0]||{}).img;
+  const lastImg=lastImageUrl();
   if(lastImg){
     try{
       const r=await fetch(lastImg,{method:'GET',cache:'no-store'});
@@ -1354,6 +1361,7 @@ async function onPostFile(inp){
   st.textContent='⏳ Yükleniyor…';
   try{
     const url=await uploadImageFile(file);
+    state.lastUpload=url;save();
     document.getElementById('post-img').value=url;
     renderImgPreview(url);
     st.textContent='✓ Yüklendi';
