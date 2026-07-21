@@ -676,7 +676,8 @@ function renderPosts(){
     <div style="flex:1;min-width:0">
       <div class="flex" style="gap:6px;flex-wrap:wrap">${p.platforms.map(x=>{const pl=P(x);return `<span class="pdot" style="width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:9px;font-weight:800;background:${pl.color}">${pl.letter}</span>`}).join('')}
       <b style="font-size:13px">${p.date.split('-').reverse().join('.')} · ${p.time}</b>
-      <span class="tag ${p.status==='yayınlandı'?'tag-gray':'tag-mint'}">${p.status}</span></div>
+      <span class="tag ${p.status==='yayınlandı'?'tag-gray':'tag-mint'}">${p.status}</span>
+      ${p.platforms.some(x=>state.accounts.some(a=>a.real&&a.platform===x))?'<span class="tag tag-mint">gerçek paylaşım</span>':'<span class="tag tag-amber">sadece plan</span>'}</div>
       <div class="muted" style="margin-top:3px;font-size:13px;color:var(--text)">${esc(p.caption)}</div>
     </div>
     ${p.status!=='yayınlandı'?`<button class="btn btn-ghost btn-sm" onclick="publishPost('${p.id}')">Şimdi Yayınla</button>`:''}
@@ -702,6 +703,10 @@ async function publishPost(id){
   const igA=igAccount();
   const fbA=fbAccount();
   const results=[];
+  const log=[];
+  log.push('Gönderi platformları: '+(p.platforms.length?p.platforms.map(x=>P(x).name).join(', '):'HİÇBİRİ SEÇİLİ DEĞİL'));
+  log.push('Gerçek bağlı: '+(state.accounts.filter(a=>a.real).map(a=>P(a.platform).name).join(', ')||'yok'));
+  log.push('Görsel: '+(p.img?'var':'yok'));
   if(p.platforms.includes('instagram')&&igA){
     if(!p.img){toast("Instagram'da gerçek paylaşım için gönderiye görsel ekleyin");return}
     toast("Instagram: görsel hazırlanıyor…");
@@ -713,8 +718,8 @@ async function publishPost(id){
       const d2=await igPost('/me/media_publish',{creation_id:d1.id});
       if(!d2.id)throw new Error('yayın onayı alınamadı');
       results.push('Instagram');
-    }catch(e){toast('Instagram: '+e.message);return}
-  }
+    }catch(e){alert('INSTAGRAM YAYIN HATASI\n\n'+e.message);return}
+  }else if(p.platforms.includes('instagram')&&!igA){log.push('⚠ Instagram seçili ama gerçek bağlantı yok (demo hesap)')}
   if(p.platforms.includes('facebook')&&fbA){
     toast("Facebook'ta yayınlanıyor…");
     try{
@@ -724,17 +729,15 @@ async function publishPost(id){
       const d=await r.json();
       if(d.error)throw new Error(d.error.message);
       results.push('Facebook');
-    }catch(e){toast('Facebook: '+e.message);return}
-  }
+    }catch(e){alert('FACEBOOK YAYIN HATASI\n\n'+e.message);return}
+  }else if(p.platforms.includes('facebook')&&!fbA){log.push('⚠ Facebook seçili ama gerçek bağlantı yok (demo hesap)')}
   if(!results.length){
-    const realPlats=state.accounts.filter(a=>a.real).map(a=>a.platform);
-    if(realPlats.length&&!p.platforms.some(x=>realPlats.includes(x))){
-      const names=realPlats.map(x=>P(x).name).join(', ');
-      if(!confirm('DİKKAT: Bu gönderide '+names+' seçili değil, bu yüzden hiçbir yere GERÇEKTEN paylaşılmayacak.\n\nSadece listede "yayınlandı" olarak işaretlensin mi?\n\nGerçek paylaşım için gönderiyi silip yeniden oluşturun ve platform kutucuğunu işaretleyin.'))return;
-    }
+    if(!confirm('GERÇEK PAYLAŞIM YAPILMADI\n\n'+log.join('\n')+'\n\nGönderi sadece listede "yayınlandı" olarak işaretlensin mi?'))return;
+    p.status='yayınlandı';save();renderPosts();renderCal();renderDash();
+    return;
   }
   p.status='yayınlandı';save();renderPosts();renderCal();renderDash();
-  toast(results.length?results.join(' + ')+" yayınlandı 🚀":'Gönderi listede yayınlandı olarak işaretlendi (gerçek paylaşım yapılmadı)');
+  alert('YAYINLANDI ✓\n\n'+results.join(' + ')+' üzerinde gerçek paylaşım yapıldı.\n\nHesaplarınızı kontrol edin.');
 }
 
 /* Tanıdaki hazır konteyneri gerçekten yayınlar — uçtan uca test */
