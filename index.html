@@ -568,7 +568,7 @@ function renderAccounts(){
     const acc=state.accounts.find(a=>a.platform===p.id);
     let btns;
     if(acc){
-      btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span><button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
+      btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span>${(acc.real&&p.id==='instagram')?`<button class="btn btn-ghost btn-sm" onclick="igDiagnose()">🩺 Tanı</button>`:''}<button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
     }else if(p.id==='instagram'){
       btns=`<button class="btn btn-p btn-sm" onclick="igLogin()">🔗 Instagram ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
     }else if(p.id==='facebook'){
@@ -1138,6 +1138,51 @@ async function igSyncComments(){
     }
   }
   return added;
+}
+
+async function igDiagnose(){
+  const a=igAccount();
+  if(!a){alert('Instagram bağlı değil.');return}
+  const lines=[];
+  const add=(k,v)=>lines.push(k+': '+v);
+  // 1) Token geçerli mi + izinler
+  try{
+    const r=await fetch(IG_API+'/me?fields=user_id,username&access_token='+encodeURIComponent(a.token));
+    const d=await r.json();
+    add('1) Hesap', d.error?('HATA — '+d.error.message):('@'+d.username+' ✓'));
+  }catch(e){add('1) Hesap','HATA — '+e.message)}
+  // 2) Yayın kotası (bu uç yayın izni yoksa hata verir)
+  try{
+    const r=await fetch(IG_API+'/me/content_publishing_limit?access_token='+encodeURIComponent(a.token));
+    const d=await r.json();
+    add('2) Yayın izni', d.error?('HATA — '+d.error.message+' (instagram_business_content_publish izni eksik olabilir; hesabı kaldırıp yeniden bağlayın)'):'var ✓ (24 saatte kullanılan: '+(((d.data||[])[0]||{}).quota_usage??0)+'/25)');
+  }catch(e){add('2) Yayın izni','HATA — '+e.message)}
+  // 3) Son yüklenen görsel herkese açık mı
+  const lastImg=(state.posts.filter(p=>p.img).slice(-1)[0]||{}).img;
+  if(lastImg){
+    try{
+      const r=await fetch(lastImg,{method:'GET',cache:'no-store'});
+      add('3) Görsel erişimi', r.ok?('açık ✓ ('+(r.headers.get('content-type')||'?')+')'):('HATA — HTTP '+r.status+' — Blob deposu Private olabilir'));
+    }catch(e){add('3) Görsel erişimi','HATA — '+e.message)}
+    // 4) Konteyner denemesi
+    try{
+      const d1=await igPost('/me/media',{image_url:lastImg,caption:'tani testi'});
+      add('4) Konteyner', d1.id?('oluştu ✓ ('+d1.id+')'):'oluşmadı');
+      if(d1.id){
+        await new Promise(r=>setTimeout(r,3000));
+        const q=new URLSearchParams({fields:'status_code,status',access_token:a.token});
+        const r2=await fetch(IG_API+'/'+d1.id+'?'+q.toString());
+        const d2=await r2.json();
+        add('5) Görsel işleme', (d2.status_code||'?')+(d2.status?(' — '+d2.status):''));
+        add('NOT','Bu bir testtir; gönderi YAYINLANMADI.');
+      }
+    }catch(e){add('4) Konteyner','HATA — '+e.message)}
+  }else{
+    add('3) Görsel','Önce bir gönderiye görsel yükleyin, sonra tanıyı çalıştırın.');
+  }
+  const txt=lines.join('\n\n');
+  console.log(txt);
+  alert('INSTAGRAM TANI RAPORU\n\n'+txt);
 }
 
 /* ================= FACEBOOK GERÇEK BAĞLANTI ================= */
