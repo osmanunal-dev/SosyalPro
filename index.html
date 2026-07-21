@@ -678,16 +678,33 @@ function renderPosts(){
     <button class="btn btn-danger btn-sm" onclick="delPost('${p.id}')">Sil</button>
   </div>`).join('');
 }
+async function igWaitReady(creationId,tries){
+  const a=igAccount();
+  for(let i=0;i<(tries||12);i++){
+    await new Promise(r=>setTimeout(r,2000));
+    try{
+      const q=new URLSearchParams({fields:'status_code,status',access_token:a.token});
+      const r=await fetch(IG_API+'/'+creationId+'?'+q.toString());
+      const d=await r.json();
+      if(d.status_code==='FINISHED')return true;
+      if(d.status_code==='ERROR')throw new Error(d.status||'Instagram görseli işleyemedi (URL herkese açık bir JPEG olmalı)');
+    }catch(e){if(String(e.message).includes('işleyemedi'))throw e}
+  }
+  throw new Error('Görsel hazırlanamadı (zaman aşımı) — görsel URL\'sinin herkese açık olduğundan emin olun');
+}
 async function publishPost(id){
   const p=state.posts.find(x=>x.id===id);if(!p)return;
   const igA=igAccount();
   const fbA=fbAccount();
   const results=[];
   if(p.platforms.includes('instagram')&&igA){
-    if(!p.img){toast("Instagram'da gerçek paylaşım için gönderiye görsel URL ekleyin");return}
-    toast("Instagram'da yayınlanıyor…");
+    if(!p.img){toast("Instagram'da gerçek paylaşım için gönderiye görsel ekleyin");return}
+    toast("Instagram: görsel hazırlanıyor…");
     try{
       const d1=await igPost('/me/media',{image_url:p.img,caption:p.caption});
+      if(!d1.id)throw new Error('görsel konteyneri oluşturulamadı');
+      await igWaitReady(d1.id);
+      toast("Instagram: yayınlanıyor…");
       const d2=await igPost('/me/media_publish',{creation_id:d1.id});
       if(!d2.id)throw new Error('yayın onayı alınamadı');
       results.push('Instagram');
