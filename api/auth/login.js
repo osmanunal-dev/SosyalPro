@@ -1,14 +1,18 @@
-// Instagram Business Login başlangıcı — kullanıcıyı Instagram yetkilendirme ekranına yönlendirir.
-// Gerekli ortam değişkenleri (Vercel > Settings > Environment Variables):
-//   IG_APP_ID        : Meta panelindeki Instagram App ID
-//   IG_REDIRECT_URI  : https://SENIN-PROJEN.vercel.app/api/auth/callback
+// Instagram Business Login başlangıcı.
+// redirect_uri artık ortam değişkeninden DEĞİL, isteğin geldiği alan adından
+// otomatik türetilir — böylece login ve callback her zaman birebir aynı adresi kullanır.
+// Gerekli ortam değişkenleri: IG_APP_ID (IG_REDIRECT_URI artık gerekmez)
+
+function redirectUriFrom(req) {
+  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  return proto + '://' + host + '/api/auth/callback';
+}
 
 module.exports = (req, res) => {
-  const appId = process.env.IG_APP_ID;
-  const redirectUri = process.env.IG_REDIRECT_URI;
-
-  if (!appId || !redirectUri) {
-    res.status(500).send('IG_APP_ID ve IG_REDIRECT_URI ortam değişkenleri tanımlı değil. Vercel ayarlarından ekleyin.');
+  const appId = (process.env.IG_APP_ID || '').trim();
+  if (!appId) {
+    res.status(500).send('IG_APP_ID ortam degiskeni tanimli degil. Vercel ayarlarindan ekleyin.');
     return;
   }
 
@@ -22,7 +26,7 @@ module.exports = (req, res) => {
   const url =
     'https://www.instagram.com/oauth/authorize' +
     '?client_id=' + encodeURIComponent(appId) +
-    '&redirect_uri=' + encodeURIComponent(redirectUri) +
+    '&redirect_uri=' + encodeURIComponent(redirectUriFrom(req)) +
     '&response_type=code' +
     '&scope=' + scope;
 
