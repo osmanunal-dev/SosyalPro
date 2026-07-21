@@ -568,7 +568,7 @@ function renderAccounts(){
     const acc=state.accounts.find(a=>a.platform===p.id);
     let btns;
     if(acc){
-      btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span>${(acc.real&&p.id==='instagram')?`<button class="btn btn-ghost btn-sm" onclick="igDiagnose()">🩺 Tanı</button>`:''}<button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
+      btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span>${(acc.real&&p.id==='instagram')?`<button class="btn btn-ghost btn-sm" onclick="igDiagnose()">🩺 Tanı</button><button class="btn btn-ghost btn-sm" onclick="igTestPublish()">🚀 Test Yayını</button>`:''}<button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
     }else if(p.id==='instagram'){
       btns=`<button class="btn btn-p btn-sm" onclick="igLogin()">🔗 Instagram ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
     }else if(p.id==='facebook'){
@@ -638,6 +638,11 @@ function renderCal(){
 }
 function openPostModal(dateStr){
   document.getElementById('post-plats').innerHTML=platChecks('pm');
+  // Gerçek bağlı hesapların kutucuklarını otomatik işaretle
+  state.accounts.filter(a=>a.real).forEach(a=>{
+    const el=document.querySelector('#post-plats input[value="'+a.platform+'"]');
+    if(el){el.checked=true;el.parentElement.classList.add('on')}
+  });
   document.getElementById('post-date').value=dateStr||ymd(new Date());
   document.getElementById('post-caption').value=window._prefillCaption||'';
   document.getElementById('post-img').value='';
@@ -721,8 +726,35 @@ async function publishPost(id){
       results.push('Facebook');
     }catch(e){toast('Facebook: '+e.message);return}
   }
+  if(!results.length){
+    const realPlats=state.accounts.filter(a=>a.real).map(a=>a.platform);
+    if(realPlats.length&&!p.platforms.some(x=>realPlats.includes(x))){
+      const names=realPlats.map(x=>P(x).name).join(', ');
+      if(!confirm('DİKKAT: Bu gönderide '+names+' seçili değil, bu yüzden hiçbir yere GERÇEKTEN paylaşılmayacak.\n\nSadece listede "yayınlandı" olarak işaretlensin mi?\n\nGerçek paylaşım için gönderiyi silip yeniden oluşturun ve platform kutucuğunu işaretleyin.'))return;
+    }
+  }
   p.status='yayınlandı';save();renderPosts();renderCal();renderDash();
-  toast(results.length?results.join(' + ')+" yayınlandı 🚀":'Gönderi yayınlandı 🚀');
+  toast(results.length?results.join(' + ')+" yayınlandı 🚀":'Gönderi listede yayınlandı olarak işaretlendi (gerçek paylaşım yapılmadı)');
+}
+
+/* Tanıdaki hazır konteyneri gerçekten yayınlar — uçtan uca test */
+async function igTestPublish(){
+  const a=igAccount();if(!a){alert('Instagram bağlı değil');return}
+  const lastImg=(state.posts.filter(p=>p.img).slice(-1)[0]||{}).img;
+  if(!lastImg){alert('Önce bir gönderiye görsel yükleyin');return}
+  if(!confirm('Instagram hesabınıza GERÇEK bir test gönderisi paylaşılacak.\n\nDevam edilsin mi?'))return;
+  try{
+    toast('Görsel hazırlanıyor…');
+    const d1=await igPost('/me/media',{image_url:lastImg,caption:'SosyalPro test gönderisi'});
+    if(!d1.id)throw new Error('konteyner oluşmadı');
+    await igWaitReady(d1.id);
+    toast('Yayınlanıyor…');
+    const d2=await igPost('/me/media_publish',{creation_id:d1.id});
+    if(!d2.id)throw new Error('yayın onayı alınamadı');
+    alert('BAŞARILI ✓\n\nGönderi Instagram\'da yayınlandı.\nMedya ID: '+d2.id+'\n\nInstagram hesabınızı kontrol edin.');
+  }catch(e){
+    alert('YAYIN HATASI\n\n'+e.message+'\n\nBu mesajı paylaşırsanız sorunu netleştirebiliriz.');
+  }
 }
 function delPost(id){state.posts=state.posts.filter(x=>x.id!==id);save();renderPosts();renderCal();renderDash()}
 
