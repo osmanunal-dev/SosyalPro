@@ -353,7 +353,7 @@ textarea.inp{resize:vertical;min-height:88px}
           <option value="comment">Yorumlar</option>
           <option value="pending">Yanıt Bekleyen</option>
         </select>
-        <button class="btn btn-p btn-sm" onclick="igSyncComments()">📸 Instagram yorumlarını çek</button>
+        <button class="btn btn-p btn-sm" onclick="syncAllComments()">📥 Yorumları çek (IG · FB · YT)</button>
         <button class="btn btn-ghost btn-sm" onclick="simulateIncoming()">📥 Demo mesaj simüle et</button>
         <span class="muted" id="inbox-count"></span>
       </div>
@@ -465,7 +465,13 @@ textarea.inp{resize:vertical;min-height:88px}
       <div class="field"><label>Saat</label><input class="inp" type="time" id="post-time" value="12:00"></div>
     </div>
     <div class="field"><label>Gönderi Metni</label><textarea class="inp" id="post-caption" placeholder="Gönderi açıklamanızı yazın…"></textarea></div>
-    <div class="field"><label>Görsel URL <span class="muted">(Instagram'da gerçek paylaşım için zorunlu — herkese açık bir jpg/png bağlantısı)</span></label><input class="inp" id="post-img" placeholder="https://ornek.com/gorsel.jpg"></div>
+    <div class="field"><label>Görsel</label>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">📁 Bilgisayardan Yükle<input type="file" id="post-file" accept="image/*" style="display:none" onchange="onPostFile(this)"></label>
+      <span class="muted" id="post-file-status" style="margin-left:8px"></span>
+      <div id="post-img-preview" style="margin-top:8px"></div>
+      <input class="inp" id="post-img" placeholder="veya görsel URL yapıştırın: https://ornek.com/gorsel.jpg" style="margin-top:8px" onchange="renderImgPreview(this.value)">
+      <div class="muted" style="margin-top:4px">Instagram'da gerçek paylaşım için görsel zorunlu; Facebook'ta görselsiz metin gönderisi de olur.</div>
+    </div>
     <div class="flex">
       <button class="btn btn-p" style="flex:1" onclick="savePost()">Planla</button>
       <button class="btn btn-ai" onclick="closeModal('ov-post');go('ai-caption')">✨ AI ile yaz</button>
@@ -488,10 +494,10 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 /* ================= PLATFORMS ================= */
 const PLATFORMS=[
  {id:'instagram',name:'Instagram',letter:'IG',color:'linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)',solid:'#DD2A7B',desc:'Gerçek bağlantı destekli · gönderi paylaşma, yorum çekme ve yanıtlama'},
- {id:'facebook',name:'Facebook',letter:'f',color:'#1877F2',solid:'#1877F2',desc:'Sayfa gönderileri · Messenger & yorum yönetimi'},
+ {id:'facebook',name:'Facebook',letter:'f',color:'#1877F2',solid:'#1877F2',desc:'Gerçek bağlantı destekli · Sayfa gönderisi paylaşma, yorum çekme ve yanıtlama'},
  {id:'x',name:'X (Twitter)',letter:'𝕏',color:'#0F1419',solid:'#0F1419',desc:'Tweet planlama · yanıt ve mention takibi'},
  {id:'tiktok',name:'TikTok',letter:'T',color:'#010101',solid:'#010101',desc:'Video planlama · yorum yönetimi'},
- {id:'youtube',name:'YouTube',letter:'▶',color:'#FF0000',solid:'#FF0000',desc:'Video ve Shorts planlama · yorum yanıtlama'},
+ {id:'youtube',name:'YouTube',letter:'▶',color:'#FF0000',solid:'#FF0000',desc:'Gerçek bağlantı destekli · yorum çekme ve yanıtlama'},
  {id:'linkedin',name:'LinkedIn',letter:'in',color:'#0A66C2',solid:'#0A66C2',desc:'Şirket sayfası gönderileri · yorum yönetimi'}
 ];
 const P=id=>PLATFORMS.find(p=>p.id===id)||PLATFORMS[0];
@@ -565,6 +571,10 @@ function renderAccounts(){
       btns=`<span class="tag ${acc.real?'tag-mint':'tag-gray'}">● ${acc.real?'Gerçek Bağlı':'Demo'}</span><button class="btn btn-danger btn-sm" onclick="disconnect('${p.id}')">Kaldır</button>`;
     }else if(p.id==='instagram'){
       btns=`<button class="btn btn-p btn-sm" onclick="igLogin()">🔗 Instagram ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
+    }else if(p.id==='facebook'){
+      btns=`<button class="btn btn-p btn-sm" onclick="fbLogin()">🔗 Facebook ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
+    }else if(p.id==='youtube'){
+      btns=`<button class="btn btn-p btn-sm" onclick="ytLogin()">🔗 YouTube ile Bağlan</button><button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo</button>`;
     }else{
       btns=`<button class="btn btn-ghost btn-sm" onclick="openConnect('${p.id}')">Demo Bağla</button>`;
     }
@@ -630,6 +640,10 @@ function openPostModal(dateStr){
   document.getElementById('post-plats').innerHTML=platChecks('pm');
   document.getElementById('post-date').value=dateStr||ymd(new Date());
   document.getElementById('post-caption').value=window._prefillCaption||'';
+  document.getElementById('post-img').value='';
+  document.getElementById('post-file').value='';
+  document.getElementById('post-file-status').textContent='';
+  document.getElementById('post-img-preview').innerHTML='';
   window._prefillCaption='';
   openModal('ov-post');
 }
@@ -666,20 +680,32 @@ function renderPosts(){
 }
 async function publishPost(id){
   const p=state.posts.find(x=>x.id===id);if(!p)return;
-  const a=igAccount();
-  if(p.platforms.includes('instagram')&&a){
+  const igA=igAccount();
+  const fbA=fbAccount();
+  const results=[];
+  if(p.platforms.includes('instagram')&&igA){
     if(!p.img){toast("Instagram'da gerçek paylaşım için gönderiye görsel URL ekleyin");return}
     toast("Instagram'da yayınlanıyor…");
     try{
       const d1=await igPost('/me/media',{image_url:p.img,caption:p.caption});
       const d2=await igPost('/me/media_publish',{creation_id:d1.id});
       if(!d2.id)throw new Error('yayın onayı alınamadı');
-      toast("Instagram'da yayınlandı 🚀");
-    }catch(e){toast('Yayınlanamadı: '+e.message);return}
-  }else{
-    toast('Gönderi yayınlandı 🚀');
+      results.push('Instagram');
+    }catch(e){toast('Instagram: '+e.message);return}
+  }
+  if(p.platforms.includes('facebook')&&fbA){
+    toast("Facebook'ta yayınlanıyor…");
+    try{
+      const url=FB_API+'/'+fbA.pageId+(p.img?'/photos':'/feed');
+      const body=p.img?{url:p.img,caption:p.caption,access_token:fbA.token}:{message:p.caption,access_token:fbA.token};
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)});
+      const d=await r.json();
+      if(d.error)throw new Error(d.error.message);
+      results.push('Facebook');
+    }catch(e){toast('Facebook: '+e.message);return}
   }
   p.status='yayınlandı';save();renderPosts();renderCal();renderDash();
+  toast(results.length?results.join(' + ')+" yayınlandı 🚀":'Gönderi yayınlandı 🚀');
 }
 function delPost(id){state.posts=state.posts.filter(x=>x.id!==id);save();renderPosts();renderCal();renderDash()}
 
@@ -832,6 +858,21 @@ async function sendReply(id,text){
     try{
       await igPost('/'+m.igId+'/replies',{message:val});
     }catch(e){toast('Instagram yanıtı gönderilemedi: '+e.message);return}
+  }else if(m.real&&m.fbId){
+    const a=fbAccount();
+    if(!a){toast('Facebook bağlantısı bulunamadı — Hesaplar sayfasından yeniden bağlanın');return}
+    try{
+      const r=await fetch(FB_API+'/'+m.fbId+'/comments',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({message:val,access_token:a.token})});
+      const d=await r.json();
+      if(d.error)throw new Error(d.error.message);
+    }catch(e){toast('Facebook yanıtı gönderilemedi: '+e.message);return}
+  }else if(m.real&&m.ytId){
+    try{
+      const tok=await ytToken();
+      const r=await fetch('https://www.googleapis.com/youtube/v3/comments?part=snippet',{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({snippet:{parentId:m.ytId,textOriginal:val}})});
+      const d=await r.json();
+      if(d.error)throw new Error(d.error.message);
+    }catch(e){toast('YouTube yanıtı gönderilemedi: '+e.message);return}
   }
   m.replied=true;m.reply=val;
   save();renderInbox();renderAiInbox();renderNav();renderDash();
@@ -1032,10 +1073,16 @@ async function igPost(path,params){
 async function handleOAuthReturn(){
   if(!location.hash)return;
   const h=new URLSearchParams(location.hash.slice(1));
-  if(h.get('ig_error')){toast('Instagram bağlantı hatası: '+h.get('ig_error'));history.replaceState(null,'',location.pathname);return}
+  const hadAny=h.get('ig_token')||h.get('ig_error')||h.get('fb_token')||h.get('fb_error')||h.get('yt_access')||h.get('yt_error');
+  if(!hadAny)return;
+  history.replaceState(null,'',location.pathname);
+  if(h.get('ig_error')){toast('Instagram bağlantı hatası: '+h.get('ig_error'));return}
+  if(h.get('fb_error')){toast('Facebook bağlantı hatası: '+h.get('fb_error'));return}
+  if(h.get('yt_error')){toast('YouTube bağlantı hatası: '+h.get('yt_error'));return}
+  if(h.get('fb_token')){toast('Facebook doğrulandı, sayfalar alınıyor…');await fbFinishConnect(h.get('fb_token'));return}
+  if(h.get('yt_access')){toast('YouTube doğrulandı, kanal bilgisi alınıyor…');await ytFinishConnect(h);return}
   const token=h.get('ig_token');
   if(!token)return;
-  history.replaceState(null,'',location.pathname);
   toast('Instagram doğrulandı, profil bilgisi alınıyor…');
   try{
     const q=new URLSearchParams({fields:'user_id,username,followers_count,media_count',access_token:token});
@@ -1060,27 +1107,171 @@ async function igRefreshIfNeeded(){
   }
 }
 async function igSyncComments(){
-  const a=igAccount();
-  if(!a){toast('Önce Hesaplar sayfasından "Instagram ile Bağlan" ile gerçek bağlantı kurun');return}
-  toast('Instagram yorumları çekiliyor…');
-  try{
-    const media=await igGet('/me/media',{fields:'id,caption,comments_count,timestamp',limit:'10'});
-    let added=0;
-    for(const m of (media.data||[])){
-      if(!m.comments_count)continue;
-      const cd=await igGet('/'+m.id+'/comments',{fields:'id,text,username,timestamp'});
-      for(const c of (cd.data||[])){
-        if(('@'+c.username)===a.username)continue;
-        if(state.inbox.some(x=>x.igId===c.id))continue;
-        state.inbox.unshift({id:uid(),igId:c.id,real:true,platform:'instagram',from:c.username,type:'comment',text:c.text,time:new Date(c.timestamp).getTime()||Date.now(),replied:false,reply:''});
-        added++;
-      }
+  const a=igAccount();if(!a)return 0;
+  const media=await igGet('/me/media',{fields:'id,caption,comments_count,timestamp',limit:'10'});
+  let added=0;
+  for(const m of (media.data||[])){
+    if(!m.comments_count)continue;
+    const cd=await igGet('/'+m.id+'/comments',{fields:'id,text,username,timestamp'});
+    for(const c of (cd.data||[])){
+      if(('@'+c.username)===a.username)continue;
+      if(state.inbox.some(x=>x.igId===c.id))continue;
+      state.inbox.unshift({id:uid(),igId:c.id,real:true,platform:'instagram',from:c.username,type:'comment',text:c.text,time:new Date(c.timestamp).getTime()||Date.now(),replied:false,reply:''});
+      added++;
     }
-    save();renderInbox();renderNav();renderDash();
-    toast(added?added+' yeni yorum alındı 📸':'Yeni yorum bulunamadı');
-  }catch(e){
-    toast('Yorumlar alınamadı: '+e.message);
   }
+  return added;
+}
+
+/* ================= FACEBOOK GERÇEK BAĞLANTI ================= */
+const FB_API='https://graph.facebook.com/v23.0';
+function fbLogin(){window.location.href='/api/auth/facebook'}
+function fbAccount(){return state.accounts.find(a=>a.platform==='facebook'&&a.real)}
+async function fbFinishConnect(userToken){
+  try{
+    const r=await fetch(FB_API+'/me/accounts?fields=id,name,access_token,fan_count&access_token='+encodeURIComponent(userToken));
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const pages=d.data||[];
+    if(!pages.length)throw new Error('Yönetici olduğunuz bir Facebook Sayfası bulunamadı. Önce bir Sayfa oluşturun.');
+    let page=pages[0];
+    if(pages.length>1){
+      const names=pages.map((p,i)=>(i+1)+') '+p.name).join('\n');
+      const sel=parseInt(prompt('Birden fazla sayfanız var. Hangisini bağlayalım?\n'+names,'1'),10);
+      if(sel>=1&&sel<=pages.length)page=pages[sel-1];
+    }
+    state.accounts=state.accounts.filter(a=>a.platform!=='facebook');
+    state.accounts.push({id:uid(),platform:'facebook',real:true,token:page.access_token,pageId:page.id,username:page.name,followers:page.fan_count||0,connectedAt:Date.now()});
+    save();go('accounts');
+    toast('"'+page.name+'" sayfası gerçek bağlantıyla bağlandı ✓');
+  }catch(e){toast('Facebook bağlanamadı: '+e.message)}
+}
+async function fbSyncComments(){
+  const a=fbAccount();if(!a)return 0;
+  const r=await fetch(FB_API+'/'+a.pageId+'/feed?fields=comments.limit(25){id,message,from,created_time}&limit=10&access_token='+encodeURIComponent(a.token));
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  let added=0;
+  for(const post of (d.data||[])){
+    const cs=(post.comments&&post.comments.data)||[];
+    for(const c of cs){
+      if(!c.message)continue;
+      if(c.from&&c.from.id===a.pageId)continue;
+      if(state.inbox.some(x=>x.fbId===c.id))continue;
+      state.inbox.unshift({id:uid(),fbId:c.id,real:true,platform:'facebook',from:(c.from&&c.from.name)||'Facebook kullanıcısı',type:'comment',text:c.message,time:new Date(c.created_time).getTime()||Date.now(),replied:false,reply:''});
+      added++;
+    }
+  }
+  return added;
+}
+
+/* ================= YOUTUBE GERÇEK BAĞLANTI ================= */
+function ytLogin(){window.location.href='/api/auth/youtube'}
+function ytAccount(){return state.accounts.find(a=>a.platform==='youtube'&&a.real)}
+async function ytToken(){
+  const a=ytAccount();if(!a)throw new Error('YouTube bağlı değil');
+  if(Date.now()>(a.expiresAt||0)-60000&&a.refresh){
+    const r=await fetch('/api/auth/youtube-refresh?refresh_token='+encodeURIComponent(a.refresh));
+    const d=await r.json();
+    if(d.access_token){a.token=d.access_token;a.expiresAt=Date.now()+(d.expires_in||3600)*1000;save()}
+  }
+  return a.token;
+}
+async function ytFinishConnect(h){
+  try{
+    const access=h.get('yt_access');
+    const r=await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true',{headers:{Authorization:'Bearer '+access}});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const ch=(d.items||[])[0];
+    if(!ch)throw new Error('Bu Google hesabında YouTube kanalı bulunamadı');
+    state.accounts=state.accounts.filter(a=>a.platform!=='youtube');
+    state.accounts.push({id:uid(),platform:'youtube',real:true,token:access,refresh:h.get('yt_refresh')||'',expiresAt:Date.now()+parseInt(h.get('yt_expires')||'3600',10)*1000,channelId:ch.id,username:ch.snippet.title,followers:parseInt((ch.statistics&&ch.statistics.subscriberCount)||'0',10),connectedAt:Date.now()});
+    save();go('accounts');
+    toast('"'+ch.snippet.title+'" kanalı gerçek bağlantıyla bağlandı ✓');
+  }catch(e){toast('YouTube bağlanamadı: '+e.message)}
+}
+async function ytSyncComments(){
+  const a=ytAccount();if(!a)return 0;
+  const tok=await ytToken();
+  const r=await fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&allThreadsRelatedToChannelId='+encodeURIComponent(a.channelId)+'&maxResults=25&order=time',{headers:{Authorization:'Bearer '+tok}});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  let added=0;
+  for(const t of (d.items||[])){
+    const top=t.snippet&&t.snippet.topLevelComment;if(!top)continue;
+    const s=top.snippet;
+    if(s.authorChannelId&&s.authorChannelId.value===a.channelId)continue;
+    if(state.inbox.some(x=>x.ytId===top.id))continue;
+    state.inbox.unshift({id:uid(),ytId:top.id,real:true,platform:'youtube',from:s.authorDisplayName||'YouTube kullanıcısı',type:'comment',text:s.textOriginal||s.textDisplay||'',time:new Date(s.publishedAt).getTime()||Date.now(),replied:false,reply:''});
+    added++;
+  }
+  return added;
+}
+
+/* ================= TÜM PLATFORM YORUM SENKRONU ================= */
+async function syncAllComments(){
+  if(!state.accounts.some(a=>a.real)){toast('Önce Hesaplar sayfasından gerçek bir hesap bağlayın');return}
+  toast('Yorumlar çekiliyor…');
+  let total=0;const errs=[];
+  if(igAccount()){try{total+=await igSyncComments()}catch(e){errs.push('Instagram: '+e.message)}}
+  if(fbAccount()){try{total+=await fbSyncComments()}catch(e){errs.push('Facebook: '+e.message)}}
+  if(ytAccount()){try{total+=await ytSyncComments()}catch(e){errs.push('YouTube: '+e.message)}}
+  save();renderInbox();renderNav();renderDash();
+  if(errs.length)toast(errs[0]);
+  else toast(total?total+' yeni yorum alındı 📥':'Yeni yorum bulunamadı');
+}
+
+/* ================= GÖRSEL YÜKLEME (Vercel Blob) ================= */
+async function compressToJpeg(file,maxW,quality){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('Görsel okunamadı'));i.src=url});
+    const scale=Math.min(1,(maxW||1920)/img.width);
+    const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(img.width*scale));
+    c.height=Math.max(1,Math.round(img.height*scale));
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height); // PNG şeffaflığı beyaza
+    ctx.drawImage(img,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',quality||0.85));
+    if(!blob)throw new Error('Görsel dönüştürülemedi');
+    return blob;
+  }finally{URL.revokeObjectURL(url)}
+}
+async function uploadImageFile(file){
+  let blob=await compressToJpeg(file,1920,0.85);
+  if(blob.size>4200000)blob=await compressToJpeg(file,1280,0.75); // hâlâ büyükse daha agresif küçült
+  if(blob.size>4200000)throw new Error('Görsel 4.5MB sınırına sığdırılamadı');
+  const name=((file.name||'gorsel').replace(/\.[^.]*$/,'')||'gorsel')+'.jpg';
+  const r=await fetch('/api/upload?filename='+encodeURIComponent(name),{
+    method:'POST',
+    headers:{'Content-Type':'application/octet-stream','x-file-type':'image/jpeg'},
+    body:blob
+  });
+  const d=await r.json();
+  if(!r.ok||!d.url)throw new Error(d.error||'Yükleme başarısız');
+  return d.url;
+}
+async function onPostFile(inp){
+  const file=inp.files&&inp.files[0];
+  if(!file)return;
+  const st=document.getElementById('post-file-status');
+  st.textContent='⏳ Yükleniyor…';
+  try{
+    const url=await uploadImageFile(file);
+    document.getElementById('post-img').value=url;
+    renderImgPreview(url);
+    st.textContent='✓ Yüklendi';
+    toast('Görsel yüklendi 📁');
+  }catch(e){
+    st.textContent='';
+    toast('Görsel yüklenemedi: '+e.message);
+  }
+}
+function renderImgPreview(url){
+  const el=document.getElementById('post-img-preview');
+  el.innerHTML=url?`<img src="${esc(url)}" alt="önizleme" style="max-width:140px;max-height:100px;border-radius:10px;border:1px solid var(--line)" onerror="this.remove()">`:'';
 }
 
 /* ================= MODAL / INIT ================= */
