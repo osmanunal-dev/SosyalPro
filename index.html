@@ -279,8 +279,17 @@ textarea.inp{resize:vertical;min-height:88px}
       </div>
       <div class="cal" id="cal"></div>
     </div>
+    <div class="card mb">
+      <div class="spread">
+        <div>
+          <h3 style="margin:0">⏰ Otomatik Yayınlama</h3>
+          <div class="muted" id="sync-info">Planlanan gönderiler sunucuya gönderilir; vakti gelince bilgisayarınız kapalı olsa bile paylaşılır.</div>
+        </div>
+        <button class="btn btn-p btn-sm" onclick="syncQueue(true)">☁️ Sunucuya Gönder</button>
+      </div>
+    </div>
     <div class="card">
-      <h3>📋 Planlanan Gönderiler</h3>
+      <div class="spread mb"><h3 style="margin:0">📋 Planlanan Gönderiler</h3><button class="btn btn-ghost btn-sm" onclick="pullQueue()">🔄 Durumu Yenile</button></div>
       <div id="post-list"></div>
     </div>
   </section>
@@ -541,7 +550,7 @@ function go(id){
   renderNav();
   if(id==='dashboard')renderDash();
   if(id==='accounts')renderAccounts();
-  if(id==='planner'){renderCal();renderPosts()}
+  if(id==='planner'){renderCal();renderPosts();updateSyncInfo()}
   if(id==='loop')renderLoops();
   if(id==='automation')renderAutos();
   if(id==='inbox')renderInbox();
@@ -667,6 +676,7 @@ function savePost(){
   state.posts.push({id:uid(),platforms:plats,date,time,caption:cap,img:document.getElementById('post-img').value.trim(),status:'planlandı'});
   save();closeModal('ov-post');renderCal();renderPosts();renderDash();
   toast('Gönderi planlandı ✓');
+  syncQueue(false);
 }
 function renderPosts(){
   const el=document.getElementById('post-list');
@@ -762,7 +772,7 @@ async function igTestPublish(){
     alert('YAYIN HATASI\n\n'+e.message+'\n\nBu mesajı paylaşırsanız sorunu netleştirebiliriz.');
   }
 }
-function delPost(id){state.posts=state.posts.filter(x=>x.id!==id);save();renderPosts();renderCal();renderDash()}
+function delPost(id){state.posts=state.posts.filter(x=>x.id!==id);save();renderPosts();renderCal();renderDash();syncQueue(false)}
 
 /* ================= LOOPS ================= */
 const FREQ_TR={daily:'Her gün',weekly:'Haftada bir',mwf:'Pzt/Çar/Cum',weekend:'Hafta sonu'};
@@ -1379,6 +1389,57 @@ function renderImgPreview(url){
   el.innerHTML=url?`<img src="${esc(url)}" alt="önizleme" style="max-width:140px;max-height:100px;border-radius:10px;border:1px solid var(--line)" onerror="this.remove()">`:'';
 }
 
+/* ================= SUNUCU KUYRUĞU (otomatik yayınlama) ================= */
+function queuePayload(){
+  const ig=igAccount(),fb=fbAccount();
+  return {
+    posts:state.posts.filter(p=>p.status!=='yayınlandı').map(p=>({id:p.id,platforms:p.platforms,date:p.date,time:p.time,caption:p.caption,img:p.img,status:p.status})),
+    ig:ig?{token:ig.token,username:ig.username}:null,
+    fb:fb?{token:fb.token,pageId:fb.pageId,username:fb.username}:null
+  };
+}
+async function syncQueue(sesli){
+  try{
+    const r=await fetch('/api/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(queuePayload())});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'kayıt başarısız');
+    state.lastSync=Date.now();save();
+    updateSyncInfo();
+    if(sesli)toast(d.count+' gönderi sunucuya kaydedildi ☁️');
+    return true;
+  }catch(e){
+    if(sesli)toast('Sunucuya gönderilemedi: '+e.message);
+    return false;
+  }
+}
+async function pullQueue(){
+  try{
+    const r=await fetch('/api/queue',{cache:'no-store'});
+    const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    let n=0;
+    (d.posts||[]).forEach(sp=>{
+      const lp=state.posts.find(x=>x.id===sp.id);
+      if(lp&&sp.status&&sp.status!==lp.status){
+        lp.status=sp.status==='atlandı'?'planlandı':sp.status;
+        if(sp.error)lp.error=sp.error;
+        n++;
+      }
+    });
+    save();renderPosts();renderCal();renderDash();updateSyncInfo();
+    const hatali=(d.posts||[]).filter(x=>x.status==='hata');
+    if(hatali.length)alert('OTOMATİK YAYIN HATASI\n\n'+hatali.map(x=>'• '+(x.caption||'').slice(0,30)+' → '+x.error).join('\n'));
+    else toast(n?n+' gönderinin durumu güncellendi 🔄':'Değişiklik yok');
+  }catch(e){toast('Durum alınamadı: '+e.message)}
+}
+function updateSyncInfo(){
+  const el=document.getElementById('sync-info');if(!el)return;
+  const bek=state.posts.filter(p=>p.status!=='yayınlandı').length;
+  el.textContent=state.lastSync
+    ?(bek+' gönderi kuyrukta · son gönderim: '+new Date(state.lastSync).toLocaleString('tr-TR'))
+    :'Planlanan gönderiler sunucuya gönderilir; vakti gelince bilgisayarınız kapalı olsa bile paylaşılır.';
+}
+
 /* ================= MODAL / INIT ================= */
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
@@ -1389,6 +1450,7 @@ renderNav();
 go('dashboard');
 handleOAuthReturn();
 igRefreshIfNeeded();
+if(state.posts.some(p=>p.status!=='yayınlandı'))pullQueue();
 </script>
 </body>
 </html>
