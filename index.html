@@ -490,12 +490,55 @@ textarea.inp{resize:vertical;min-height:88px}
 
 <div id="toast"></div>
 
+<!-- ===== GİRİŞ EKRANI ===== -->
+<div class="overlay" id="ov-login" style="background:linear-gradient(135deg,#0E1F2D,#14293A)">
+  <div class="modal" style="max-width:400px;text-align:center">
+    <div class="brand-logo" style="margin:0 auto 14px">S</div>
+    <h3 style="justify-content:center" id="login-title">SosyalPro'ya Giriş</h3>
+    <div class="muted mb" id="login-sub">Hesaplarınız ve gönderileriniz tüm cihazlarınızda senkron olur.</div>
+    <div class="field" style="text-align:left"><label>E-posta</label><input class="inp" id="login-email" type="email" placeholder="ornek@eposta.com" autocomplete="username"></div>
+    <div class="field" style="text-align:left"><label>Şifre</label><input class="inp" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="login-err" style="color:var(--coral);font-size:12.5px;margin-bottom:10px;min-height:16px"></div>
+    <button class="btn btn-p" style="width:100%" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+    <div class="muted mt" style="font-size:12.5px">
+      <span id="login-switch-txt">Hesabınız yok mu?</span>
+      <a href="#" onclick="toggleLoginMode();return false" style="color:var(--mint-dark);font-weight:600" id="login-switch">Kayıt olun</a>
+    </div>
+  </div>
+</div>
+
 <script>
+/* ================= FIREBASE (bulut giriş + senkron) =================
+   KURULUM (bir kez):
+   1) console.firebase.google.com → yeni proje → "Web" uygulaması ekle,
+      verdiği config'i aşağıdaki FIREBASE_CONFIG'e yapıştırın.
+   2) Build → Authentication → Sign-in method → "E-posta/Şifre" → etkinleştir.
+   3) Build → Firestore Database → oluştur (production). Rules:
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{db}/documents {
+            match /sosyalpro/{uid} {
+              allow read, write: if request.auth != null && request.auth.uid == uid;
+            }
+          }
+        }
+   Config boş bırakılırsa uygulama yalnızca bu cihazda (localStorage) çalışır. */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+let fbAuth=null, fbDb=null, fbUser=null, applyingRemote=false, pushTimer=null;
+function fbConfigured(){return !!(FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId)}
+
 /* ================= STATE ================= */
 const LS='sosyalpro_v1';
 let state=load()||{accounts:[],posts:[],loops:[],automations:[],inbox:[],chat:[],aiAuto:false,bizProfile:'',seeded:false};
 function load(){try{return JSON.parse(localStorage.getItem(LS))}catch(e){return null}}
-function save(){localStorage.setItem(LS,JSON.stringify(state))}
+function save(){localStorage.setItem(LS,JSON.stringify(state));schedulePush()}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
@@ -1446,11 +1489,126 @@ function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'))});
 
+/* ================= GİRİŞ & BULUT SENKRONU ================= */
+let loginMode='in'; // 'in' | 'up'
+function toggleLoginMode(){
+  loginMode=loginMode==='in'?'up':'in';
+  const isUp=loginMode==='up';
+  document.getElementById('login-title').textContent=isUp?'Yeni Hesap Oluştur':"SosyalPro'ya Giriş";
+  document.getElementById('login-btn').textContent=isUp?'Kayıt Ol':'Giriş Yap';
+  document.getElementById('login-switch-txt').textContent=isUp?'Zaten hesabınız var mı?':'Hesabınız yok mu?';
+  document.getElementById('login-switch').textContent=isUp?'Giriş yapın':'Kayıt olun';
+  document.getElementById('login-err').textContent='';
+}
+function loginErr(m){document.getElementById('login-err').textContent=m}
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){loginErr('E-posta ve şifre gerekli');return}
+  if(pass.length<6){loginErr('Şifre en az 6 karakter olmalı');return}
+  const btn=document.getElementById('login-btn');btn.disabled=true;
+  try{
+    if(loginMode==='up')await fbAuth.createUserWithEmailAndPassword(email,pass);
+    else await fbAuth.signInWithEmailAndPassword(email,pass);
+    // onAuthStateChanged devralır
+  }catch(e){
+    const map={
+      'auth/invalid-email':'Geçersiz e-posta',
+      'auth/user-not-found':'Bu e-posta ile kayıt yok',
+      'auth/wrong-password':'Şifre hatalı',
+      'auth/invalid-credential':'E-posta veya şifre hatalı',
+      'auth/email-already-in-use':'Bu e-posta zaten kayıtlı',
+      'auth/weak-password':'Şifre çok zayıf',
+      'auth/network-request-failed':'İnternet bağlantısı yok'
+    };
+    loginErr(map[e.code]||e.message);
+    btn.disabled=false;
+  }
+}
+async function doLogout(){
+  if(!confirm('Çıkış yapmak istediğinize emin misiniz?'))return;
+  if(pushTimer){clearTimeout(pushTimer);await pushNow()}
+  await fbAuth.signOut();
+  location.reload();
+}
+function docRef(){return fbDb.collection('sosyalpro').doc(fbUser.uid)}
+function schedulePush(){
+  if(!fbUser||applyingRemote)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushNow,800);
+}
+async function pushNow(){
+  if(!fbUser)return;
+  try{await docRef().set({state:JSON.stringify(state),updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)},{merge:true})}
+  catch(e){console.warn('Bulut kaydı başarısız',e)}
+}
+function applyRemote(remoteState){
+  applyingRemote=true;
+  try{
+    state=remoteState;
+    localStorage.setItem(LS,JSON.stringify(state));
+    if(typeof currentView!=='undefined')go(currentView);
+    renderChips();renderNav();
+  }finally{applyingRemote=false}
+}
+function startAuth(){
+  firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth=firebase.auth();
+  fbDb=firebase.firestore();
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  fbAuth.onAuthStateChanged(async user=>{
+    if(user){
+      fbUser=user;
+      closeModal('ov-login');
+      // Buluttan yükle; yoksa yereldeki veriyi buluta taşı
+      try{
+        const snap=await docRef().get();
+        if(snap.exists&&snap.data().state){
+          applyRemote(JSON.parse(snap.data().state));
+        }else{
+          await pushNow(); // ilk kez: mevcut yerel veriyi buluta yaz
+        }
+      }catch(e){console.warn('İlk yükleme hatası',e)}
+      // Canlı senkron: başka cihazdaki değişiklik anında yansısın
+      docRef().onSnapshot(snap=>{
+        if(!snap.exists||applyingRemote)return;
+        const d=snap.data();
+        if(d&&d.state){
+          const incoming=JSON.parse(d.state);
+          if(JSON.stringify(incoming)!==JSON.stringify(state))applyRemote(incoming);
+        }
+      });
+      bootApp();
+      addLogoutButton();
+    }else{
+      fbUser=null;
+      openModal('ov-login');
+    }
+  });
+}
+function addLogoutButton(){
+  if(document.getElementById('logout-btn'))return;
+  const foot=document.querySelector('.sidebar-foot');
+  if(foot)foot.innerHTML='<button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%" onclick="doLogout()">🚪 Çıkış Yap</button><div style="margin-top:8px">'+foot.innerHTML+'</div>';
+}
+let _booted=false;
+function bootApp(){
+  if(_booted)return;_booted=true;
+  go('dashboard');
+  handleOAuthReturn();
+  igRefreshIfNeeded();
+  if(state.posts.some(p=>p.status!=='yayınlandı'))pullQueue();
+}
+
+/* ================= BAŞLANGIÇ ================= */
 renderNav();
-go('dashboard');
-handleOAuthReturn();
-igRefreshIfNeeded();
-if(state.posts.some(p=>p.status!=='yayınlandı'))pullQueue();
+if(fbConfigured()){
+  openModal('ov-login');
+  startAuth();
+}else{
+  // Firebase yapılandırılmamış — eski davranış (sadece bu cihaz)
+  bootApp();
+}
 </script>
 </body>
 </html>
