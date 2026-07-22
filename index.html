@@ -344,6 +344,9 @@ textarea.inp{resize:vertical;min-height:88px}
         <div class="field"><label>Otomatik Yanıt Metni</label><textarea class="inp" id="auto-reply" placeholder="Merhaba! Güncel fiyat listemiz için DM'den ulaşabilirsiniz. 😊"></textarea></div>
         <button class="btn btn-p" onclick="addAutomation()">Kuralı Oluştur</button>
         <div class="muted mt">💡 Hazır kurallar için <a href="#" onclick="go('auto-templates');return false" style="color:var(--mint-dark);font-weight:600">Otomasyon Şablonları</a>'na göz atın.</div>
+        <div class="card" style="background:var(--mint-soft);border:none;margin-top:14px;padding:12px 14px">
+          <div style="font-size:12.5px;color:var(--mint-dark)"><b>⚡ Gerçek zamanlı otomatik yanıt</b><br>Instagram yorum kurallarınız, webhook kurulduğunda gerçek yorumlara <b>anında</b> (bilgisayarınız kapalıyken bile) otomatik yanıt verir. Kurulum için proje ekindeki <b>KURULUM-WEBHOOK.md</b> rehberini izleyin. Kuralı değiştirdiğinizde otomatik olarak sunucuya gönderilir.</div>
+        </div>
       </div>
       <div class="card">
         <h3>🟢 Kurallarım</h3>
@@ -863,6 +866,7 @@ function addAutomation(){
   save();renderAutos();renderDash();
   document.getElementById('auto-name').value='';document.getElementById('auto-keywords').value='';document.getElementById('auto-reply').value='';
   toast('Otomasyon kuralı oluşturuldu ⚙️');
+  if(typeof syncQueue==='function')syncQueue(false);
 }
 function renderAutos(){
   const el=document.getElementById('auto-list');
@@ -877,8 +881,8 @@ function renderAutos(){
     <button class="btn btn-danger btn-sm" onclick="delAuto('${a.id}')">Sil</button>
   </div>`).join('');
 }
-function toggleAuto(id,v){const a=state.automations.find(x=>x.id===id);if(a){a.active=v;save();renderDash()}}
-function delAuto(id){state.automations=state.automations.filter(x=>x.id!==id);save();renderAutos();renderDash()}
+function toggleAuto(id,v){const a=state.automations.find(x=>x.id===id);if(a){a.active=v;save();renderDash();if(typeof syncQueue==='function')syncQueue(false)}}
+function delAuto(id){state.automations=state.automations.filter(x=>x.id!==id);save();renderAutos();renderDash();if(typeof syncQueue==='function')syncQueue(false)}
 
 /* ================= INBOX ================= */
 const DEMO_MSGS=[
@@ -1112,7 +1116,7 @@ function installTpl(i){
   const t=AUTO_TPLS[i];
   if(state.automations.some(a=>a.name===t.name)){toast('Bu şablon zaten kurulu');return}
   state.automations.push({id:uid(),name:t.name,trigger:t.trigger,keywords:[...t.kw],reply:t.reply,active:true,hits:0});
-  save();toast('"'+t.name+'" kuruldu ✓ — Otomasyon Araçları\'nda aktif');renderDash();
+  save();toast('"'+t.name+'" kuruldu ✓ — Otomasyon Araçları\'nda aktif');renderDash();if(typeof syncQueue==='function')syncQueue(false);
 }
 
 /* ================= AI TEMPLATES ================= */
@@ -1440,8 +1444,9 @@ function queuePayload(){
   const ig=igAccount(),fb=fbAccount();
   return {
     posts:state.posts.filter(p=>p.status!=='yayınlandı').map(p=>({id:p.id,platforms:p.platforms,date:p.date,time:p.time,caption:p.caption,img:p.img,status:p.status})),
-    ig:ig?{token:ig.token,username:ig.username}:null,
-    fb:fb?{token:fb.token,pageId:fb.pageId,username:fb.username}:null
+    ig:ig?{token:ig.token,username:ig.username,userId:ig.igId}:null,
+    fb:fb?{token:fb.token,pageId:fb.pageId,username:fb.username}:null,
+    automations:state.automations.filter(a=>a.active).map(a=>({trigger:a.trigger,keywords:a.keywords,reply:a.reply,active:a.active,hits:a.hits||0,name:a.name}))
   };
 }
 async function syncQueue(sesli){
